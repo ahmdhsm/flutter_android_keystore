@@ -26,7 +26,7 @@ class _MyAppState extends State<MyApp> {
   var plainTextController = TextEditingController();
   var encryptedTextController = TextEditingController();
   var decryptedTextController = TextEditingController();
-  Uint8List? chiper;
+  String? chiper;
   String encrypted = "";
 
   @override
@@ -75,8 +75,7 @@ class _MyAppState extends State<MyApp> {
                   ResultModel result = await androidKeystore.encrypt(
                       message: plainTextController.text, tag: "Tag");
                   chiper = result.rawData;
-                  encryptedTextController.text =
-                      (result.rawData as Uint8List).toString();
+                  encryptedTextController.text = result.rawData;
                 },
                 child: const Text('Encrypt'),
               ),

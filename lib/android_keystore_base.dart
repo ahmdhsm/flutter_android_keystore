@@ -34,7 +34,7 @@ abstract class AndroidKeystoreBase {
   });
 
   Future<ResultModel<String?>> decrypt({
-    required Uint8List message,
+    required String message,
     required String tag,
     String? password,
   });

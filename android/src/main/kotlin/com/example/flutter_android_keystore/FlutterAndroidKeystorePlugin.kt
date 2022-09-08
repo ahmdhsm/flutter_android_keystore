@@ -1,5 +1,6 @@
 package com.example.flutter_android_keystore
 
+import android.app.Application
 import android.os.Build
 import android.security.keystore.KeyGenParameterSpec
 import android.security.keystore.KeyProperties
@@ -30,11 +31,14 @@ class FlutterAndroidKeystorePlugin: FlutterPlugin, MethodCallHandler {
   /// when the Flutter Engine is detached from the Activity
   private lateinit var channel : MethodChannel
 
+  val encryptionHelper: EncryptionHelper = EncryptionHelper()
+
   lateinit var iv: ByteArray
 
   override fun onAttachedToEngine(@NonNull flutterPluginBinding: FlutterPlugin.FlutterPluginBinding) {
     channel = MethodChannel(flutterPluginBinding.binaryMessenger, "flutter_android_keystore")
     channel.setMethodCallHandler(this)
+    encryptionHelper.context = flutterPluginBinding.applicationContext
   }
 
   @RequiresApi(Build.VERSION_CODES.M)
@@ -102,53 +106,19 @@ class FlutterAndroidKeystorePlugin: FlutterPlugin, MethodCallHandler {
       }
       result.success(valid.toString())
     } else if (call.method == "encrypt") {
-      val kg: KeyGenerator = KeyGenerator.getInstance(KeyProperties.KEY_ALGORITHM_AES, "AndroidKeyStore");
+      val message: String = call.argument<String>("message").toString()
+      val tag: String = call.argument<String>("tag").toString()
 
-      val parameterSpec: KeyGenParameterSpec = KeyGenParameterSpec.Builder(
-        "alias",
-        KeyProperties.PURPOSE_ENCRYPT or KeyProperties.PURPOSE_DECRYPT,
-      ).run {
-        setBlockModes(KeyProperties.BLOCK_MODE_GCM)
-        setEncryptionPaddings(KeyProperties.ENCRYPTION_PADDING_NONE)
-        build()
-      }
-
-      kg.init(parameterSpec)
-
-      val sk: SecretKey = kg.generateKey();
-
-      val cipher: Cipher = Cipher.getInstance("AES/GCM/NoPadding");
-
-      cipher.init(Cipher.ENCRYPT_MODE, sk);
-
-      val message: String? = call.argument("message");
-
-      iv = cipher.getIV()
-
-      val encryption = cipher.doFinal(message?.toByteArray(Charsets.UTF_8));
+      val encryption = encryptionHelper.encrypt(message, tag, false);
 
       result.success(encryption)
     } else if (call.method == "decrypt") {
-      val ks: KeyStore = KeyStore.getInstance("AndroidKeyStore").apply {
-        load(null)
-      }
+      val message: String? = call.argument("message")
+      val tag: String = call.argument<String>("tag").toString()
 
-      val entry: KeyStore.SecretKeyEntry = ks.getEntry("alias", null) as KeyStore.SecretKeyEntry
+      val decrypt = encryptionHelper.decrypt(message!!, tag, false);
 
-      val sk: SecretKey = entry.getSecretKey();
-
-      val cipher: Cipher = Cipher.getInstance("AES/GCM/NoPadding");
-      val spec = GCMParameterSpec(128, iv)
-
-      cipher.init(Cipher.DECRYPT_MODE, sk, spec)
-
-      val message: ByteArray? = call.argument("message");
-
-      val decodedData = cipher.doFinal(message)
-
-      val string: String = String(decodedData, Charsets.UTF_8)
-
-      result.success(string)
+      result.success(decrypt)
     } else {
       result.notImplemented()
     }

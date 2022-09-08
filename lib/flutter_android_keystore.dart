@@ -23,11 +23,9 @@ class FlutterAndroidKeystore implements AndroidKeystoreBase {
 
   @override
   Future<ResultModel<String?>> decrypt(
-      {required Uint8List message,
-      required String tag,
-      String? password}) async {
-    final String? data =
-        await _channel.invokeMethod('decrypt', {"message": message});
+      {required String message, required String tag, String? password}) async {
+    final String? data = await _channel
+        .invokeMethod('decrypt', {"message": message, "tag": tag});
     final result = ResultModel(null, data, (dynamic) {});
     return result;
   }
@@ -35,8 +33,8 @@ class FlutterAndroidKeystore implements AndroidKeystoreBase {
   @override
   Future<ResultModel<Uint8List?>> encrypt(
       {required String message, required String tag, String? password}) async {
-    final Uint8List data =
-        await _channel.invokeMethod('encrypt', {"message": message});
+    final String data = await _channel
+        .invokeMethod('encrypt', {"message": message, "tag": tag});
     final result = ResultModel(null, data, (dynamic) {});
     return result;
   }
