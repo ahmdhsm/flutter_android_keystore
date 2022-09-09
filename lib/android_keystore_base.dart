@@ -6,9 +6,11 @@ import 'src/models/result_model.dart';
 export 'src/models/result_model.dart';
 
 abstract class AndroidKeystoreBase {
-  Future<ResultModel<bool>> generateKeyPair({
-    required AccessControlModel accessControl,
-  });
+  Future<ResultModel<bool>> generateKeyPair(
+      //   {
+      //   required AccessControlModel accessControl,
+      // }
+      );
 
   Future<ResultModel<bool>> removeKey(String tag);
 

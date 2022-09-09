@@ -48,9 +48,13 @@ class FlutterAndroidKeystore implements AndroidKeystoreBase {
 
   @override
   Future<ResultModel<bool>> generateKeyPair(
-      {required AccessControlModel accessControl}) {
-    // TODO: implement generateKeyPair
-    throw UnimplementedError();
+      // {required AccessControlModel accessControl}
+      ) async {
+    final String data = await _channel.invokeMethod(
+      'generateKeyPair',
+    );
+    final result = ResultModel(null, data, (dynamic) {});
+    return result.rawData;
   }
 
   @override

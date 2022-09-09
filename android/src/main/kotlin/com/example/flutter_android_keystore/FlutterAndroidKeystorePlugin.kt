@@ -1,6 +1,7 @@
 package com.example.flutter_android_keystore
 
 import android.app.Application
+import android.content.Context
 import android.os.Build
 import android.security.keystore.KeyGenParameterSpec
 import android.security.keystore.KeyProperties
@@ -22,14 +23,18 @@ import javax.crypto.Cipher
 import javax.crypto.KeyGenerator
 import javax.crypto.SecretKey
 import javax.crypto.spec.GCMParameterSpec
+import io.flutter.embedding.engine.plugins.activity.ActivityAware
+import io.flutter.embedding.engine.plugins.activity.ActivityPluginBinding
+
 
 /** FlutterAndroidKeystorePlugin */
-class FlutterAndroidKeystorePlugin: FlutterPlugin, MethodCallHandler {
+class FlutterAndroidKeystorePlugin: FlutterPlugin, MethodCallHandler, ActivityAware {
   /// The MethodChannel that will the communication between Flutter and native Android
   ///
   /// This local reference serves to register the plugin with the Flutter Engine and unregister it
   /// when the Flutter Engine is detached from the Activity
   private lateinit var channel : MethodChannel
+  private lateinit var context: Context
 
   val encryptionHelper: EncryptionHelper = EncryptionHelper()
 
@@ -39,6 +44,7 @@ class FlutterAndroidKeystorePlugin: FlutterPlugin, MethodCallHandler {
     channel = MethodChannel(flutterPluginBinding.binaryMessenger, "flutter_android_keystore")
     channel.setMethodCallHandler(this)
     encryptionHelper.context = flutterPluginBinding.applicationContext
+    context = flutterPluginBinding.applicationContext
   }
 
   @RequiresApi(Build.VERSION_CODES.M)
@@ -119,12 +125,32 @@ class FlutterAndroidKeystorePlugin: FlutterPlugin, MethodCallHandler {
       val decrypt = encryptionHelper.decrypt(message!!, tag, false);
 
       result.success(decrypt)
-    } else {
+    } else if(call.method == "generateKeyPair"){
+      val ksCore: KSCore = KSCore(context)
+
+      ksCore.generateKeyPair()
+    }else {
       result.notImplemented()
     }
   }
 
   override fun onDetachedFromEngine(@NonNull binding: FlutterPlugin.FlutterPluginBinding) {
     channel.setMethodCallHandler(null)
+  }
+
+  override fun onAttachedToActivity(binding: ActivityPluginBinding) {
+    TODO("Not yet implemented")
+  }
+
+  override fun onDetachedFromActivityForConfigChanges() {
+    TODO("Not yet implemented")
+  }
+
+  override fun onReattachedToActivityForConfigChanges(binding: ActivityPluginBinding) {
+    TODO("Not yet implemented")
+  }
+
+  override fun onDetachedFromActivity() {
+    TODO("Not yet implemented")
   }
 }

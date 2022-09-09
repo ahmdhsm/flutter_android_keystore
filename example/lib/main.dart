@@ -72,10 +72,13 @@ class _MyAppState extends State<MyApp> {
               const SizedBox(height: 10),
               ElevatedButton(
                 onPressed: () async {
-                  ResultModel result = await androidKeystore.encrypt(
-                      message: plainTextController.text, tag: "Tag");
+                  ResultModel result = await androidKeystore.generateKeyPair();
                   chiper = result.rawData;
                   encryptedTextController.text = result.rawData;
+                  // ResultModel result = await androidKeystore.encrypt(
+                  //     message: plainTextController.text, tag: "Tag");
+                  // chiper = result.rawData;
+                  // encryptedTextController.text = result.rawData;
                 },
                 child: const Text('Encrypt'),
               ),
