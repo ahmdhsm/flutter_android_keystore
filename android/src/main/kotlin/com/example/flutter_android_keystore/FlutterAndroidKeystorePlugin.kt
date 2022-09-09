@@ -113,12 +113,19 @@ class FlutterAndroidKeystorePlugin: FlutterPlugin, MethodCallHandler {
 
       result.success(encryption)
     } else if (call.method == "decrypt") {
-      val message: String? = call.argument("message")
+      val message: ByteArray? = call.argument("message")
       val tag: String = call.argument<String>("tag").toString()
 
       val decrypt = encryptionHelper.decrypt(message!!, tag, false);
 
       result.success(decrypt)
+    } else if (call.method == "sign") {
+      val message: String? = call.argument("message")
+      val tag: String = call.argument<String>("tag").toString()
+
+      val sign = encryptionHelper.sign(message!!, tag, false)
+
+      result.success(sign)
     } else {
       result.notImplemented()
     }
