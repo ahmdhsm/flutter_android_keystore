@@ -4,6 +4,8 @@
 // dirctory. You can also find a detailed instruction on how to add platforms in the `pubspec.yaml` at https://flutter.dev/docs/development/packages-and-plugins/developing-packages#plugin-platforms.
 
 import 'dart:async';
+import 'dart:convert';
+import 'dart:ffi';
 import 'dart:typed_data';
 
 import 'package:flutter/services.dart';
@@ -80,10 +82,18 @@ class FlutterAndroidKeystore implements AndroidKeystoreBase {
   }
 
   @override
-  Future<ResultModel<String?>> sign(
-      {required Uint8List message, required String tag, String? password}) {
-    // TODO: implement sign
-    throw UnimplementedError();
+  Future<ResultModel<String?>> sign({
+    required Uint8List message,
+    required String tag,
+    String? password,
+  }) async {
+    var stringMessage = utf8.decode(message);
+    ;
+    print(stringMessage);
+    final String data = await _channel
+        .invokeMethod('sign', {"message": stringMessage, "tag": tag});
+    final result = ResultModel(null, data, (dynamic) {});
+    return result;
   }
 
   @override
@@ -91,8 +101,10 @@ class FlutterAndroidKeystore implements AndroidKeystoreBase {
       {required String plainText,
       required String signature,
       required String tag,
-      String? password}) {
-    // TODO: implement verify
-    throw UnimplementedError();
+      String? password}) async {
+    final bool data = await _channel.invokeMethod(
+        'verify', {"message": plainText, "tag": tag, "signature": signature});
+    final result = ResultModel(null, data, (dynamic) {});
+    return result;
   }
 }

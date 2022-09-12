@@ -7,7 +7,9 @@ import android.security.keystore.KeyProperties
 import android.util.Base64
 import android.util.Log
 import androidx.annotation.RequiresApi
+import java.security.KeyPairGenerator
 import java.security.KeyStore
+import java.security.Signature
 import javax.crypto.Cipher
 import javax.crypto.KeyGenerator
 import javax.crypto.SecretKey
@@ -18,7 +20,8 @@ class EncryptionHelper {
 
     @RequiresApi(Build.VERSION_CODES.M)
     public fun encrypt(message: String, tag: String, isBiometric: Boolean): ByteArray {
-        val kg: KeyGenerator = KeyGenerator.getInstance(KeyProperties.KEY_ALGORITHM_AES, "AndroidKeyStore");
+        val kg: KeyGenerator =
+            KeyGenerator.getInstance(KeyProperties.KEY_ALGORITHM_AES, "AndroidKeyStore");
 
         val parameterSpec: KeyGenParameterSpec = KeyGenParameterSpec.Builder(
             tag,
@@ -84,6 +87,61 @@ class EncryptionHelper {
 
         val string: String = String(decodedData, Charsets.UTF_8)
 
-        return  string
+        return string
+    }
+
+    @RequiresApi(Build.VERSION_CODES.M)
+    public fun sign(message: String, tag: String): String {
+        val kpg: KeyPairGenerator = KeyPairGenerator.getInstance(
+            KeyProperties.KEY_ALGORITHM_EC,
+            "AndroidKeyStore"
+        )
+        val parameterSpec: KeyGenParameterSpec = KeyGenParameterSpec.Builder(
+            tag,
+            KeyProperties.PURPOSE_SIGN or KeyProperties.PURPOSE_VERIFY
+        ).run {
+            setDigests(KeyProperties.DIGEST_SHA256, KeyProperties.DIGEST_SHA512)
+            build()
+        }
+
+        kpg.initialize(parameterSpec)
+
+        val kp = kpg.generateKeyPair()
+
+        val ks: KeyStore = KeyStore.getInstance("AndroidKeyStore").apply {
+            load(null)
+        }
+        val entry: KeyStore.Entry = ks.getEntry(tag, null)
+        if (entry !is KeyStore.PrivateKeyEntry) {
+            Log.w("tes", "Not an instance of a PrivateKeyEntry")
+            return ""
+        }
+
+        val signature: ByteArray = Signature.getInstance("SHA256withECDSA").run {
+            initSign(entry.privateKey)
+            update(message.toByteArray())
+            sign()
+        }
+
+        return Base64.encodeToString(signature, Base64.NO_WRAP)
+    }
+
+    public fun verify(signature: ByteArray, message: String, tag: String): Boolean {
+        val ks: KeyStore = KeyStore.getInstance("AndroidKeyStore").apply {
+            load(null)
+        }
+        val entry: KeyStore.Entry = ks.getEntry(tag, null)
+        if (entry !is KeyStore.PrivateKeyEntry) {
+            Log.w("tes", "Not an instance of a PrivateKeyEntry")
+            return false
+        }
+
+        val valid: Boolean = Signature.getInstance("SHA256withECDSA").run {
+            initVerify(entry.certificate)
+            update(message.toByteArray())
+            verify(signature)
+        }
+
+        return valid
     }
 }

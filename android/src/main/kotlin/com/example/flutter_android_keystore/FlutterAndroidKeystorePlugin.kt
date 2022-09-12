@@ -5,6 +5,7 @@ import android.content.Context
 import android.os.Build
 import android.security.keystore.KeyGenParameterSpec
 import android.security.keystore.KeyProperties
+import android.util.Base64
 import android.util.Log
 import androidx.annotation.NonNull
 import androidx.annotation.RequiresApi
@@ -129,7 +130,22 @@ class FlutterAndroidKeystorePlugin: FlutterPlugin, MethodCallHandler, ActivityAw
       val ksCore: KSCore = KSCore(context)
 
       ksCore.generateKeyPair()
-    }else {
+    } else if (call.method == "sign") {
+      val message: String? = call.argument("message")
+      val tag: String = call.argument<String>("tag").toString()
+
+      val decrypt = encryptionHelper.sign(message!!, tag);
+
+      result.success(decrypt)
+    } else if (call.method == "verify") {
+      val message: String? = call.argument("message")
+      val tag: String = call.argument<String>("tag").toString()
+      val signature: String = call.argument<String>("signature").toString()
+
+      val decrypt = encryptionHelper.verify(Base64.decode(signature, Base64.NO_WRAP), message!!, tag);
+
+      result.success(decrypt)
+    } else {
       result.notImplemented()
     }
   }

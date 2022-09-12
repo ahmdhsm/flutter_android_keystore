@@ -28,9 +28,12 @@ class _MyAppState extends State<MyApp> {
   var encryptedTextController = TextEditingController();
   var decryptedTextController = TextEditingController();
   var signTextController = TextEditingController();
+  var signResultTextController = TextEditingController();
   var verifyTextController = TextEditingController();
+  var verifyResultTextController = TextEditingController();
 
   Uint8List? chiperByte;
+  String? signature;
   String encrypted = "";
 
   @override
@@ -67,56 +70,105 @@ class _MyAppState extends State<MyApp> {
         appBar: AppBar(
           title: const Text('Plugin example app'),
         ),
-        body: Center(
-          child: Column(
-            children: [
-              TextFormField(
-                controller: plainTextController,
-              ),
-              const SizedBox(height: 10),
-              ElevatedButton(
-                onPressed: () async {
-                  ResultModel result = await androidKeystore.encrypt(
-                      message: plainTextController.text, tag: "Tag");
-                  chiperByte = result.rawData;
-                  // encrypted = result.rawData;
-                  encryptedTextController.text = chiperByte.toString();
-                },
-                child: const Text('Encrypt'),
-              ),
-              TextFormField(
-                controller: encryptedTextController,
-              ),
-              const SizedBox(height: 10),
-              ElevatedButton(
-                onPressed: () async {
-                  ResultModel result = await androidKeystore.decrypt(
-                    message: chiperByte!,
-                    tag: "Tag",
-                  );
-                  decryptedTextController.text = result.rawData;
-                },
-                child: const Text('Decrypt'),
-              ),
-              TextFormField(
-                controller: decryptedTextController,
-              ),
-              TextFormField(
-                controller: signTextController,
-              ),
-              const SizedBox(height: 10),
-              ElevatedButton(
-                onPressed: () async {
-                  ResultModel result = await androidKeystore.sign(
-                    message:
-                        Uint8List.fromList(signTextController.text.codeUnits),
-                    tag: "Tag",
-                  );
-                  decryptedTextController.text = result.rawData;
-                },
-                child: const Text('Sign'),
-              ),
-            ],
+        body: SingleChildScrollView(
+          child: Padding(
+            padding: EdgeInsets.symmetric(horizontal: 10),
+            child: Column(
+              children: [
+                TextFormField(
+                  controller: plainTextController,
+                  decoration: const InputDecoration(
+                    label: Text('Text'),
+                  ),
+                ),
+                const SizedBox(height: 10),
+                ElevatedButton(
+                  onPressed: () async {
+                    ResultModel result = await androidKeystore.encrypt(
+                        message: plainTextController.text, tag: "Tag");
+                    chiperByte = result.rawData;
+                    // encrypted = result.rawData;
+                    encryptedTextController.text = chiperByte.toString();
+                  },
+                  child: const Text('Encrypt'),
+                ),
+                TextFormField(
+                  controller: encryptedTextController,
+                  decoration: const InputDecoration(
+                    label: Text('Encrypted'),
+                  ),
+                  enabled: false,
+                ),
+                const SizedBox(height: 10),
+                ElevatedButton(
+                  onPressed: () async {
+                    ResultModel result = await androidKeystore.decrypt(
+                      message: chiperByte!,
+                      tag: "Tag",
+                    );
+                    decryptedTextController.text = result.rawData;
+                  },
+                  child: const Text('Decrypt'),
+                ),
+                TextFormField(
+                  controller: decryptedTextController,
+                  decoration: const InputDecoration(
+                    label: Text('Decrypted'),
+                  ),
+                  enabled: false,
+                ),
+                TextFormField(
+                  controller: signTextController,
+                  decoration: const InputDecoration(
+                    label: Text('Signature Text'),
+                  ),
+                ),
+                const SizedBox(height: 10),
+                ElevatedButton(
+                  onPressed: () async {
+                    ResultModel result = await androidKeystore.sign(
+                      message:
+                          Uint8List.fromList(signTextController.text.codeUnits),
+                      tag: "signature",
+                    );
+                    signature = result.rawData;
+                    signResultTextController.text = signature.toString();
+                  },
+                  child: const Text('Sign'),
+                ),
+                TextFormField(
+                  controller: signResultTextController,
+                  decoration: const InputDecoration(
+                    label: Text('Signature Result'),
+                  ),
+                  enabled: false,
+                ),
+                TextFormField(
+                  controller: verifyTextController,
+                  decoration: const InputDecoration(
+                    label: Text('Verify Text'),
+                  ),
+                ),
+                ElevatedButton(
+                  onPressed: () async {
+                    ResultModel result = await androidKeystore.verify(
+                      plainText: verifyTextController.text,
+                      signature: signature!,
+                      tag: "signature",
+                    );
+                    verifyResultTextController.text = result.rawData.toString();
+                  },
+                  child: const Text('verify'),
+                ),
+                TextFormField(
+                  controller: verifyResultTextController,
+                  decoration: const InputDecoration(
+                    label: Text('Verify Result'),
+                  ),
+                  enabled: false,
+                ),
+              ],
+            ),
           ),
         ),
       ),
