@@ -26,6 +26,7 @@ import javax.crypto.SecretKey
 import javax.crypto.spec.GCMParameterSpec
 import io.flutter.embedding.engine.plugins.activity.ActivityAware
 import io.flutter.embedding.engine.plugins.activity.ActivityPluginBinding
+import kotlin.math.sign
 
 
 /** FlutterAndroidKeystorePlugin */
@@ -38,6 +39,7 @@ class FlutterAndroidKeystorePlugin: FlutterPlugin, MethodCallHandler, ActivityAw
   private lateinit var context: Context
 
   val encryptionHelper: EncryptionHelper = EncryptionHelper()
+  val ksCore = KSCore()
 
   lateinit var iv: ByteArray
 
@@ -46,6 +48,7 @@ class FlutterAndroidKeystorePlugin: FlutterPlugin, MethodCallHandler, ActivityAw
     channel.setMethodCallHandler(this)
     encryptionHelper.context = flutterPluginBinding.applicationContext
     context = flutterPluginBinding.applicationContext
+    ksCore.context = context
   }
 
   @RequiresApi(Build.VERSION_CODES.M)
@@ -113,36 +116,34 @@ class FlutterAndroidKeystorePlugin: FlutterPlugin, MethodCallHandler, ActivityAw
       }
       result.success(valid.toString())
     } else if (call.method == "encrypt") {
-      val message: String = call.argument<String>("message").toString()
-      val tag: String = call.argument<String>("tag").toString()
+      val message: String? = call.argument("message")
+      val tag: String? = call.argument("tag")
 
-      val encryption = encryptionHelper.encrypt(message, tag, false);
+      val encryption = ksCore.encrypt(message!!, tag!!, null);
 
       result.success(encryption)
     } else if (call.method == "decrypt") {
       val message: ByteArray? = call.argument("message")
-      val tag: String = call.argument<String>("tag").toString()
+      val tag: String? = call.argument("tag")
 
-      val decrypt = encryptionHelper.decrypt(message!!, tag, false);
+      val decrypt = ksCore.decrypt(message!!, tag!!, null);
 
       result.success(decrypt)
     } else if(call.method == "generateKeyPair"){
-      val ksCore: KSCore = KSCore(context)
-
       ksCore.generateKeyPair()
     } else if (call.method == "sign") {
-      val message: String? = call.argument("message")
-      val tag: String = call.argument<String>("tag").toString()
+      val plainText: String? = call.argument("plaintext")
+      val tag: String? = call.argument("tag")
 
-      val decrypt = encryptionHelper.sign(message!!, tag);
+      val decrypt = ksCore.sign(tag!!, plainText!!, null)
 
       result.success(decrypt)
     } else if (call.method == "verify") {
-      val message: String? = call.argument("message")
-      val tag: String = call.argument<String>("tag").toString()
-      val signature: String = call.argument<String>("signature").toString()
+      val plainText: String? = call.argument("plaintext")
+      val tag: String? = call.argument("tag")
+      val signature: String? = call.argument("signature")
 
-      val decrypt = encryptionHelper.verify(Base64.decode(signature, Base64.NO_WRAP), message!!, tag);
+      val decrypt = ksCore.verify(tag!!, plainText!!, signature!!, null);
 
       result.success(decrypt)
     } else {

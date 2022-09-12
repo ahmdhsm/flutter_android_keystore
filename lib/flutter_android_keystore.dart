@@ -91,7 +91,7 @@ class FlutterAndroidKeystore implements AndroidKeystoreBase {
     ;
     print(stringMessage);
     final String data = await _channel
-        .invokeMethod('sign', {"message": stringMessage, "tag": tag});
+        .invokeMethod('sign', {"plaintext": stringMessage, "tag": tag});
     final result = ResultModel(null, data, (dynamic) {});
     return result;
   }
@@ -103,7 +103,7 @@ class FlutterAndroidKeystore implements AndroidKeystoreBase {
       required String tag,
       String? password}) async {
     final bool data = await _channel.invokeMethod(
-        'verify', {"message": plainText, "tag": tag, "signature": signature});
+        'verify', {"plaintext": plainText, "tag": tag, "signature": signature});
     final result = ResultModel(null, data, (dynamic) {});
     return result;
   }

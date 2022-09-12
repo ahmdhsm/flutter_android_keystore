@@ -138,7 +138,7 @@ class EncryptionHelper {
 
         val valid: Boolean = Signature.getInstance("SHA256withECDSA").run {
             initVerify(entry.certificate)
-            update(message.toByteArray())
+            update(1)
             verify(signature)
         }
 
