@@ -146,6 +146,18 @@ class FlutterAndroidKeystorePlugin: FlutterPlugin, MethodCallHandler, ActivityAw
       val decrypt = ksCore.verify(tag!!, plainText!!, signature!!, null);
 
       result.success(decrypt)
+    } else if (call.method == "isKeyCreated") {
+      val tag: String? = call.argument("tag")
+
+      val keyExist = ksCore.isKeyCreated(tag!!, null)
+
+      result.success(keyExist)
+    } else if (call.method == "removeKey") {
+      val tag: String? = call.argument("tag")
+
+      val keyExist = ksCore.removeKey(tag!!)
+
+      result.success(keyExist)
     } else {
       result.notImplemented()
     }

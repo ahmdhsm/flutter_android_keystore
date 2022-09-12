@@ -90,7 +90,16 @@ class KSCore() : KSCoreAbstract() {
     }
 
     override fun removeKey(tag: String): Boolean {
-        TODO("Not yet implemented")
+        val ks: KeyStore = KeyStore.getInstance("AndroidKeyStore").apply {
+            load(null)
+        }
+
+        if (ks.containsAlias(tag)) {
+            ks.deleteEntry(tag)
+            return true
+        }
+
+        return false
     }
 
     override fun getSecKey(tag: String, password: String?): SecretKey {
@@ -98,7 +107,14 @@ class KSCore() : KSCoreAbstract() {
     }
 
     override fun isKeyCreated(tag: String, password: String?): Boolean? {
-        TODO("Not yet implemented")
+        val ks: KeyStore = KeyStore.getInstance("AndroidKeyStore").apply {
+            load(null)
+        }
+
+        if (ks.containsAlias(tag)) {
+            return true
+        }
+        return false
     }
 
     override fun getPublicKey(tag: String, password: String?): String? {

@@ -31,6 +31,8 @@ class _MyAppState extends State<MyApp> {
   var signResultTextController = TextEditingController();
   var verifyTextController = TextEditingController();
   var verifyResultTextController = TextEditingController();
+  var keyCheckTextController = TextEditingController();
+  var keyExistTextController = TextEditingController();
 
   Uint8List? chiperByte;
   String? signature;
@@ -164,6 +166,28 @@ class _MyAppState extends State<MyApp> {
                   controller: verifyResultTextController,
                   decoration: const InputDecoration(
                     label: Text('Verify Result'),
+                  ),
+                  enabled: false,
+                ),
+                TextFormField(
+                  controller: keyCheckTextController,
+                  decoration: const InputDecoration(
+                    label: Text('Check Key'),
+                  ),
+                ),
+                ElevatedButton(
+                  onPressed: () async {
+                    ResultModel result = await androidKeystore.isKeyCreated(
+                      tag: keyCheckTextController.text,
+                    );
+                    keyExistTextController.text = result.rawData.toString();
+                  },
+                  child: const Text('check key'),
+                ),
+                TextFormField(
+                  controller: keyExistTextController,
+                  decoration: const InputDecoration(
+                    label: Text('Is Key Exist?'),
                   ),
                   enabled: false,
                 ),

@@ -70,15 +70,19 @@ class FlutterAndroidKeystore implements AndroidKeystoreBase {
 
   @override
   Future<ResultModel<bool?>> isKeyCreated(
-      {required String tag, String? password}) {
-    // TODO: implement isKeyCreated
-    throw UnimplementedError();
+      {required String tag, String? password}) async {
+    final bool data = await _channel.invokeMethod('isKeyCreated', {"tag": tag});
+    final result = ResultModel(null, data, (dynamic) {});
+    return result;
   }
 
   @override
-  Future<ResultModel<bool>> removeKey(String tag) {
-    // TODO: implement removeKey
-    throw UnimplementedError();
+  Future<ResultModel<bool>> removeKey(String tag) async {
+    final bool data = await _channel.invokeMethod('removeKey', {"tag": tag});
+    final result = ResultModel<bool>(null, data, (dynamic) {
+      return false;
+    });
+    return result;
   }
 
   @override
@@ -88,7 +92,6 @@ class FlutterAndroidKeystore implements AndroidKeystoreBase {
     String? password,
   }) async {
     var stringMessage = utf8.decode(message);
-    ;
     print(stringMessage);
     final String data = await _channel
         .invokeMethod('sign', {"plaintext": stringMessage, "tag": tag});
