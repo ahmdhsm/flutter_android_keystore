@@ -119,7 +119,7 @@ class FlutterAndroidKeystorePlugin: FlutterPlugin, MethodCallHandler, ActivityAw
 
       result.success(encryption)
     } else if (call.method == "decrypt") {
-      val message: String? = call.argument("message")
+      val message: ByteArray? = call.argument("message")
       val tag: String = call.argument<String>("tag").toString()
 
       val decrypt = encryptionHelper.decrypt(message!!, tag, false);

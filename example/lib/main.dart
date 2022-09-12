@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
@@ -26,7 +27,10 @@ class _MyAppState extends State<MyApp> {
   var plainTextController = TextEditingController();
   var encryptedTextController = TextEditingController();
   var decryptedTextController = TextEditingController();
-  String? chiper;
+  var signTextController = TextEditingController();
+  var verifyTextController = TextEditingController();
+
+  Uint8List? chiperByte;
   String encrypted = "";
 
   @override
@@ -72,13 +76,11 @@ class _MyAppState extends State<MyApp> {
               const SizedBox(height: 10),
               ElevatedButton(
                 onPressed: () async {
-                  ResultModel result = await androidKeystore.generateKeyPair();
-                  chiper = result.rawData;
-                  encryptedTextController.text = result.rawData;
-                  // ResultModel result = await androidKeystore.encrypt(
-                  //     message: plainTextController.text, tag: "Tag");
-                  // chiper = result.rawData;
-                  // encryptedTextController.text = result.rawData;
+                  ResultModel result = await androidKeystore.encrypt(
+                      message: plainTextController.text, tag: "Tag");
+                  chiperByte = result.rawData;
+                  // encrypted = result.rawData;
+                  encryptedTextController.text = chiperByte.toString();
                 },
                 child: const Text('Encrypt'),
               ),
@@ -89,13 +91,30 @@ class _MyAppState extends State<MyApp> {
               ElevatedButton(
                 onPressed: () async {
                   ResultModel result = await androidKeystore.decrypt(
-                      message: chiper!, tag: "Tag");
+                    message: chiperByte!,
+                    tag: "Tag",
+                  );
                   decryptedTextController.text = result.rawData;
                 },
-                child: const Text('Encrypt'),
+                child: const Text('Decrypt'),
               ),
               TextFormField(
                 controller: decryptedTextController,
+              ),
+              TextFormField(
+                controller: signTextController,
+              ),
+              const SizedBox(height: 10),
+              ElevatedButton(
+                onPressed: () async {
+                  ResultModel result = await androidKeystore.sign(
+                    message:
+                        Uint8List.fromList(signTextController.text.codeUnits),
+                    tag: "Tag",
+                  );
+                  decryptedTextController.text = result.rawData;
+                },
+                child: const Text('Sign'),
               ),
             ],
           ),

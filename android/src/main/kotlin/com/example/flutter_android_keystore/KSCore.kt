@@ -38,7 +38,7 @@ abstract class KSCoreAbstract {
     abstract fun encryptWithPublicKey(message: String, publicKey: String) : List<Int>?
 
     // decryption
-    abstract fun decrypt(message: String, tag: String, password: String?) : String?
+    abstract fun decrypt(message: ByteArray, tag: String, password: String?) : String?
 
     // sign
     abstract fun sign(tag: String, password: String?, message: String) : String?
@@ -105,7 +105,7 @@ class KSCore(private var context: Context) : KSCoreAbstract() {
         TODO("Not yet implemented")
     }
 
-    override fun decrypt(message: String, tag: String, password: String?): String? {
+    override fun decrypt(message: ByteArray, tag: String, password: String?): String? {
         TODO("Not yet implemented")
     }
 

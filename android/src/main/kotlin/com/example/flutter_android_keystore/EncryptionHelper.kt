@@ -17,7 +17,7 @@ class EncryptionHelper {
     lateinit var context: Context
 
     @RequiresApi(Build.VERSION_CODES.M)
-    public fun encrypt(message: String, tag: String, isBiometric: Boolean): String {
+    public fun encrypt(message: String, tag: String, isBiometric: Boolean): ByteArray {
         val kg: KeyGenerator = KeyGenerator.getInstance(KeyProperties.KEY_ALGORITHM_AES, "AndroidKeyStore");
 
         val parameterSpec: KeyGenParameterSpec = KeyGenParameterSpec.Builder(
@@ -51,17 +51,18 @@ class EncryptionHelper {
         Log.w("tes 1", encryption.toString())
         Log.w("tes 1", encryption[2].toString())
 
-        return Base64.encodeToString(encryption, Base64.NO_WRAP)
+        return encryption
+//        return Base64.encodeToString(encryption, Base64.NO_WRAP)
     }
 
     @RequiresApi(Build.VERSION_CODES.KITKAT)
-    public fun decrypt(message: String, tag: String, isBiometric: Boolean): String {
+    public fun decrypt(message: ByteArray, tag: String, isBiometric: Boolean): String {
         val preferences = context.getSharedPreferences("MyPrefs", Context.MODE_PRIVATE)
 
-        val byteMessage: ByteArray = Base64.decode(message, Base64.NO_WRAP);
+//        val byteMessage: ByteArray = Base64.decode(message, Base64.NO_WRAP);
 
-        Log.w("tes 2", message)
-        Log.w("tes 1", byteMessage[2].toString())
+//        Log.w("tes 2", message)
+        Log.w("tes 1", message[2].toString())
 
         val base64Iv = preferences.getString(tag, "")
         val iv = Base64.decode(base64Iv, Base64.NO_WRAP)
@@ -79,7 +80,7 @@ class EncryptionHelper {
 
         cipher.init(Cipher.DECRYPT_MODE, sk, spec)
 
-        val decodedData = cipher.doFinal(byteMessage)
+        val decodedData = cipher.doFinal(message)
 
         val string: String = String(decodedData, Charsets.UTF_8)
 
