@@ -84,6 +84,13 @@ class _MyAppState extends State<MyApp> {
                   },
                   child: const Text('Generate Key Pair'),
                 ),
+                ElevatedButton(
+                  onPressed: () async {
+                    ResultModel result =
+                        await androidKeystore.getPublicKey(tag: 'Tag');
+                  },
+                  child: const Text('Get Public Key'),
+                ),
                 TextFormField(
                   controller: plainTextController,
                   decoration: const InputDecoration(

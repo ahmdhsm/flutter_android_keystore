@@ -106,6 +106,12 @@ class FlutterAndroidKeystorePlugin: FlutterPlugin, MethodCallHandler, ActivityAw
       val keyExist = ksCore.removeKey(tag!!)
 
       result.success(keyExist)
+    }  else if (call.method == "getPublicKey") {
+      val tag: String? = call.argument("tag")
+
+      val publicKey = ksCore.getPublicKey(tag!!, null)
+
+      result.success(publicKey)
     } else {
       result.notImplemented()
     }

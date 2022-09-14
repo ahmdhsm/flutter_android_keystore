@@ -63,9 +63,12 @@ class FlutterAndroidKeystore implements AndroidKeystoreBase {
 
   @override
   Future<ResultModel<String?>> getPublicKey(
-      {required String tag, String? password}) {
-    // TODO: implement getPublicKey
-    throw UnimplementedError();
+      {required String tag, String? password}) async {
+    final String data =
+        await _channel.invokeMethod('getPublicKey', {"tag": tag});
+    final result = ResultModel(null, data, (dynamic) {});
+    print(result.rawData);
+    return result;
   }
 
   @override

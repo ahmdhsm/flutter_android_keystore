@@ -120,7 +120,12 @@ class KSCore() : KSCoreAbstract() {
     }
 
     override fun getPublicKey(tag: String, password: String?): String? {
-        TODO("Not yet implemented")
+        val ks: KeyStore = KeyStore.getInstance("AndroidKeyStore").apply {
+            load(null)
+        }
+
+        val publicKey = ks.getCertificate(tag).publicKey
+        return  Base64.encodeToString(publicKey.encoded, Base64.NO_WRAP)
     }
 
     override fun encrypt(message: String, tag: String, password: String?): ByteArray? {
