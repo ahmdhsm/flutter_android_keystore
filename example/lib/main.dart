@@ -75,6 +75,15 @@ class _MyAppState extends State<MyApp> {
             padding: EdgeInsets.symmetric(horizontal: 10),
             child: Column(
               children: [
+                ElevatedButton(
+                  onPressed: () async {
+                    ResultModel result = await androidKeystore.generateKeyPair(
+                      accessControl:
+                          AccessControlModel(options: [], tag: "Tag"),
+                    );
+                  },
+                  child: const Text('Generate Key Pair'),
+                ),
                 TextFormField(
                   controller: plainTextController,
                   decoration: const InputDecoration(

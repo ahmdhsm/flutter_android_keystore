@@ -1,29 +1,26 @@
 package com.example.flutter_android_keystore
 
-import android.annotation.TargetApi
 import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Build
 import android.security.keystore.KeyGenParameterSpec
 import android.security.keystore.KeyProperties
 import android.util.Base64
-import android.util.Log
-import androidx.annotation.RequiresApi
 import java.security.KeyPair
 import java.security.KeyPairGenerator
 import java.security.KeyStore
 import java.security.Signature
 import java.security.spec.AlgorithmParameterSpec
 import java.security.spec.ECGenParameterSpec
+import java.security.spec.RSAKeyGenParameterSpec
 import javax.crypto.Cipher
-import javax.crypto.KeyGenerator
 import javax.crypto.SecretKey
 import javax.crypto.spec.GCMParameterSpec
 
 
 abstract class KSCoreAbstract {
     // create and store private key to secure enclave
-    abstract fun generateKeyPair() : KeyPair?
+    abstract fun generateKeyPair(tag: String, biometric: Boolean) : KeyPair?
 
     // remove key from secure enclave
     abstract fun removeKey(tag: String) : Boolean
@@ -56,18 +53,23 @@ abstract class KSCoreAbstract {
 class KSCore() : KSCoreAbstract() {
     lateinit var context: Context
 
-    @TargetApi(Build.VERSION_CODES.M)
-    override fun generateKeyPair(): KeyPair? {
+    override fun generateKeyPair(tag: String, biometric: Boolean): KeyPair? {
         val kpg: KeyPairGenerator = KeyPairGenerator.getInstance(
             KeyProperties.KEY_ALGORITHM_EC,
             "AndroidKeyStore",
         )
         val spec: AlgorithmParameterSpec
 
-        val parameterSpec: KeyGenParameterSpec.Builder = KeyGenParameterSpec.Builder(
-            "alias",
-            KeyProperties.PURPOSE_SIGN or KeyProperties.PURPOSE_VERIFY or KeyProperties.PURPOSE_ENCRYPT or KeyProperties.PURPOSE_VERIFY
-        )
+        var specRSA = RSAKeyGenParameterSpec(1024, RSAKeyGenParameterSpec.F4)
+
+        val parameterSpec: KeyGenParameterSpec.Builder = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            KeyGenParameterSpec.Builder(
+                tag,
+                KeyProperties.PURPOSE_SIGN or KeyProperties.PURPOSE_VERIFY or KeyProperties.PURPOSE_ENCRYPT or KeyProperties.PURPOSE_VERIFY
+            )
+        } else {
+            TODO("VERSION.SDK_INT < M")
+        }
 
         parameterSpec.setAlgorithmParameterSpec(ECGenParameterSpec("secp256r1"))
         parameterSpec.setDigests(KeyProperties.DIGEST_SHA256, KeyProperties.DIGEST_SHA512)
@@ -78,14 +80,13 @@ class KSCore() : KSCoreAbstract() {
 
         spec = parameterSpec.run {
             setDigests(KeyProperties.DIGEST_SHA256, KeyProperties.DIGEST_SHA512)
+            setUserAuthenticationRequired(biometric)
             build()
         }
 
         kpg.initialize(spec)
 
         val kp = kpg.generateKeyPair()
-        println("wsws" + kp.private.encoded)
-        println("wkwk" + kp.public.encoded)
         return kp
     }
 
@@ -105,26 +106,21 @@ class KSCore() : KSCoreAbstract() {
         TODO("Not yet implemented")
     }
 
-    @RequiresApi(Build.VERSION_CODES.M)
     override fun encrypt(message: String, tag: String, password: String?): ByteArray? {
-        val kg: KeyGenerator =
-            KeyGenerator.getInstance(KeyProperties.KEY_ALGORITHM_AES, "AndroidKeyStore");
-
-        val parameterSpec: KeyGenParameterSpec = KeyGenParameterSpec.Builder(
-            tag,
-            KeyProperties.PURPOSE_ENCRYPT or KeyProperties.PURPOSE_DECRYPT,
-        ).run {
-            setBlockModes(KeyProperties.BLOCK_MODE_GCM)
-            setEncryptionPaddings(KeyProperties.ENCRYPTION_PADDING_NONE)
-            build()
+        val ks: KeyStore = KeyStore.getInstance("AndroidKeyStore").apply {
+            load(null)
         }
 
-        kg.init(parameterSpec)
+//        val entry: KeyStore.SecretKeyEntry = ks.getEntry(tag, null) as KeyStore.SecretKeyEntry
+//        val sk: SecretKey = entry.getSecretKey()
 
-        val sk: SecretKey = kg.generateKey()
-        val cipher: Cipher = Cipher.getInstance("AES/GCM/NoPadding")
+        val certificate = ks.getCertificate(tag)
 
-        cipher.init(Cipher.ENCRYPT_MODE, sk)
+//        val cipher: Cipher = Cipher.getInstance("AES/GCM/NoPadding")
+
+        val cipher: Cipher = Cipher.getInstance("RSA/ECB/PKCS1Padding")
+
+        cipher.init(Cipher.ENCRYPT_MODE, certificate.publicKey)
 
         val iv = cipher.getIV()
         val editor = context.getSharedPreferences("MyPrefs", Context.MODE_PRIVATE).edit()
@@ -139,7 +135,6 @@ class KSCore() : KSCoreAbstract() {
         TODO("Not yet implemented")
     }
 
-    @RequiresApi(Build.VERSION_CODES.KITKAT)
     override fun decrypt(message: ByteArray, tag: String, password: String?): String? {
         val preferences = context.getSharedPreferences("MyPrefs", Context.MODE_PRIVATE)
         val base64Iv = preferences.getString(tag, "")
@@ -151,8 +146,13 @@ class KSCore() : KSCoreAbstract() {
 
         val entry: KeyStore.SecretKeyEntry = ks.getEntry(tag, null) as KeyStore.SecretKeyEntry
         val sk: SecretKey = entry.getSecretKey();
-        val cipher: Cipher = Cipher.getInstance("AES/GCM/NoPadding");
-        val spec = GCMParameterSpec(128, iv)
+        val cipher: Cipher = Cipher.getInstance("AES/GCM/NoPadding")
+
+        val spec = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
+            GCMParameterSpec(128, iv)
+        } else {
+            TODO("VERSION.SDK_INT < KITKAT")
+        }
 
         cipher.init(Cipher.DECRYPT_MODE, sk, spec)
 
@@ -160,19 +160,21 @@ class KSCore() : KSCoreAbstract() {
         return String(decodedData, Charsets.UTF_8)
     }
 
-    @RequiresApi(Build.VERSION_CODES.M)
     override fun sign(tag: String, message: String, password: String?): String? {
-
         val kpg: KeyPairGenerator = KeyPairGenerator.getInstance(
             KeyProperties.KEY_ALGORITHM_EC,
             "AndroidKeyStore"
         )
-        val parameterSpec: KeyGenParameterSpec = KeyGenParameterSpec.Builder(
-            tag,
-            KeyProperties.PURPOSE_SIGN or KeyProperties.PURPOSE_VERIFY
-        ).run {
-            setDigests(KeyProperties.DIGEST_SHA256, KeyProperties.DIGEST_SHA512)
-            build()
+        val parameterSpec: KeyGenParameterSpec = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            KeyGenParameterSpec.Builder(
+                tag,
+                KeyProperties.PURPOSE_SIGN or KeyProperties.PURPOSE_VERIFY
+            ).run {
+                setDigests(KeyProperties.DIGEST_SHA256, KeyProperties.DIGEST_SHA512)
+                build()
+            }
+        } else {
+            TODO("VERSION.SDK_INT < M")
         }
 
         kpg.initialize(parameterSpec)

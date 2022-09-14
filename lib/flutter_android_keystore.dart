@@ -14,6 +14,8 @@ import 'package:flutter_android_keystore/src/models/access_control_model.dart';
 
 import 'android_keystore_base.dart';
 
+export 'package:flutter_android_keystore/src/models/access_control_model.dart';
+
 class FlutterAndroidKeystore implements AndroidKeystoreBase {
   static const MethodChannel _channel =
       MethodChannel('flutter_android_keystore');
@@ -52,11 +54,9 @@ class FlutterAndroidKeystore implements AndroidKeystoreBase {
 
   @override
   Future<ResultModel<bool>> generateKeyPair(
-      // {required AccessControlModel accessControl}
-      ) async {
-    final String data = await _channel.invokeMethod(
-      'generateKeyPair',
-    );
+      {required AccessControlModel accessControl}) async {
+    final String data = await _channel
+        .invokeMethod('generateKeyPair', {"tag": accessControl.tag});
     final result = ResultModel(null, data, (dynamic) {});
     return result.rawData;
   }
