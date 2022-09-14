@@ -7,10 +7,7 @@ import android.security.keystore.KeyGenParameterSpec
 import android.security.keystore.KeyProperties
 import android.util.Base64
 import android.util.Log
-import java.security.KeyPair
-import java.security.KeyPairGenerator
-import java.security.KeyStore
-import java.security.Signature
+import java.security.*
 import java.security.spec.AlgorithmParameterSpec
 import java.security.spec.MGF1ParameterSpec
 import java.security.spec.RSAKeyGenParameterSpec
@@ -76,6 +73,7 @@ class KSCore() : KSCoreAbstract() {
 //        parameterSpec.setAlgorithmParameterSpec(ECGenParameterSpec("secp256r1"))
         parameterSpec.setDigests(KeyProperties.DIGEST_SHA256, KeyProperties.DIGEST_SHA512)
             parameterSpec.setEncryptionPaddings(KeyProperties.ENCRYPTION_PADDING_RSA_OAEP)
+                parameterSpec.setSignaturePaddings(KeyProperties.SIGNATURE_PADDING_RSA_PSS)
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P && context.packageManager.hasSystemFeature(PackageManager.FEATURE_STRONGBOX_KEYSTORE)) {
             parameterSpec.setIsStrongBoxBacked(true)
@@ -168,25 +166,25 @@ class KSCore() : KSCoreAbstract() {
     }
 
     override fun sign(tag: String, message: String, password: String?): String? {
-        val kpg: KeyPairGenerator = KeyPairGenerator.getInstance(
-            KeyProperties.KEY_ALGORITHM_EC,
-            "AndroidKeyStore"
-        )
-        val parameterSpec: KeyGenParameterSpec = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            KeyGenParameterSpec.Builder(
-                tag,
-                KeyProperties.PURPOSE_SIGN or KeyProperties.PURPOSE_VERIFY
-            ).run {
-                setDigests(KeyProperties.DIGEST_SHA256, KeyProperties.DIGEST_SHA512)
-                build()
-            }
-        } else {
-            TODO("VERSION.SDK_INT < M")
-        }
-
-        kpg.initialize(parameterSpec)
-
-        val kp = kpg.generateKeyPair()
+//        val kpg: KeyPairGenerator = KeyPairGenerator.getInstance(
+//            KeyProperties.KEY_ALGORITHM_EC,
+//            "AndroidKeyStore"
+//        )
+//        val parameterSpec: KeyGenParameterSpec = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+//            KeyGenParameterSpec.Builder(
+//                tag,
+//                KeyProperties.PURPOSE_SIGN or KeyProperties.PURPOSE_VERIFY
+//            ).run {
+//                setDigests(KeyProperties.DIGEST_SHA256, KeyProperties.DIGEST_SHA512)
+//                build()
+//            }
+//        } else {
+//            TODO("VERSION.SDK_INT < M")
+//        }
+//
+//        kpg.initialize(parameterSpec)
+//
+//        val kp = kpg.generateKeyPair()
 
         val ks: KeyStore = KeyStore.getInstance("AndroidKeyStore").apply {
             load(null)
@@ -196,11 +194,14 @@ class KSCore() : KSCoreAbstract() {
             return null
         }
 
-        val signature: ByteArray = Signature.getInstance("SHA256withECDSA").run {
-            initSign(entry.privateKey)
+        val signature: ByteArray = Signature.getInstance("SHA256withRSA/PSS").run {
+            initSign(ks.getKey(tag, null) as PrivateKey)
             update(message.toByteArray())
             sign()
         }
+
+//        val signature = Signature.getInstance("SHA256withRSA/PSS")
+//        signature.initSign(ks.getKey(tag, null) as PrivateKey)
 
         return Base64.encodeToString(signature, Base64.NO_WRAP)
     }
@@ -219,7 +220,7 @@ class KSCore() : KSCoreAbstract() {
             return false
         }
 
-        val valid: Boolean = Signature.getInstance("SHA256withECDSA").run {
+        val valid: Boolean = Signature.getInstance("SHA256withRSA/PSS").run {
             initVerify(entry.certificate)
             update(plainText.toByteArray())
             verify(Base64.decode(signature, Base64.NO_WRAP))

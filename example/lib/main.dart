@@ -139,7 +139,7 @@ class _MyAppState extends State<MyApp> {
                     ResultModel result = await androidKeystore.sign(
                       message:
                           Uint8List.fromList(signTextController.text.codeUnits),
-                      tag: "signature",
+                      tag: "Tag",
                     );
                     signature = result.rawData;
                     signResultTextController.text = signature.toString();
@@ -164,7 +164,7 @@ class _MyAppState extends State<MyApp> {
                     ResultModel result = await androidKeystore.verify(
                       plainText: verifyTextController.text,
                       signature: signature!,
-                      tag: "signature",
+                      tag: "Tag",
                     );
                     verifyResultTextController.text = result.rawData.toString();
                   },
