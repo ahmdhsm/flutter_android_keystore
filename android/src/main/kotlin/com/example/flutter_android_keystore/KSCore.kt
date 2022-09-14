@@ -12,11 +12,12 @@ import java.security.KeyPairGenerator
 import java.security.KeyStore
 import java.security.Signature
 import java.security.spec.AlgorithmParameterSpec
-import java.security.spec.ECGenParameterSpec
+import java.security.spec.MGF1ParameterSpec
 import java.security.spec.RSAKeyGenParameterSpec
 import javax.crypto.Cipher
 import javax.crypto.SecretKey
-import javax.crypto.spec.GCMParameterSpec
+import javax.crypto.spec.OAEPParameterSpec
+import javax.crypto.spec.PSource
 
 
 abstract class KSCoreAbstract {
@@ -113,25 +114,22 @@ class KSCore() : KSCoreAbstract() {
             load(null)
         }
 
-//        val entry: KeyStore.SecretKeyEntry = ks.getEntry(tag, null) as KeyStore.SecretKeyEntry
-//        val sk: SecretKey = entry.getSecretKey()
-
         val certificate = ks.getCertificate(tag)
 
-//        val cipher: Cipher = Cipher.getInstance("AES/GCM/NoPadding")
+        val cipher: Cipher = Cipher.getInstance("RSA/ECB/OAEPwithSHA-256andMGF1Padding")
 
-        val cipher: Cipher = Cipher.getInstance("RSA/ECB/OAEPWithSHA-256AndMGF1Padding")
+        val sp = OAEPParameterSpec(
+            "SHA-256",
+            "MGF1",
+            MGF1ParameterSpec("SHA-1"),
+            PSource.PSpecified.DEFAULT
+        )
 
-        cipher.init(Cipher.ENCRYPT_MODE, certificate.publicKey)
+        cipher.init(Cipher.ENCRYPT_MODE, certificate.publicKey, sp)
 
-//        val iv = cipher.getIV()
-//        val editor = context.getSharedPreferences("MyPrefs", Context.MODE_PRIVATE).edit()
-//        val ivString = Base64.encodeToString(iv, Base64.NO_WRAP)
-//        editor.putString(tag, ivString)
-//        editor.commit()
-
-        Log.d("tes 2", Base64.encodeToString(cipher.doFinal(message?.toByteArray(Charsets.UTF_8)), Base64.NO_WRAP))
-        return cipher.doFinal(message?.toByteArray(Charsets.UTF_8))
+        val chiper =  cipher.doFinal(message?.toByteArray(Charsets.UTF_8))
+        Log.d("tes 2", Base64.encodeToString(chiper, Base64.NO_WRAP))
+        return chiper
     }
 
     override fun encryptWithPublicKey(message: String, publicKey: String): ByteArray? {
@@ -139,28 +137,29 @@ class KSCore() : KSCoreAbstract() {
     }
 
     override fun decrypt(message: ByteArray, tag: String, password: String?): String? {
-//        val preferences = context.getSharedPreferences("MyPrefs", Context.MODE_PRIVATE)
-//        val base64Iv = preferences.getString(tag, "")
-//        val iv = Base64.decode(base64Iv, Base64.NO_WRAP)
-
         val ks: KeyStore = KeyStore.getInstance("AndroidKeyStore").apply {
             load(null)
         }
 
-//        val certificate = ks.getCertificate(tag)
+//        val chars = arrayOf('A', 'B', 'C') as CharArray
         val pk = ks.getKey(tag, null)
 
 //        val entry: KeyStore.SecretKeyEntry = ks.getEntry(tag, null) as KeyStore.SecretKeyEntry
 //        val sk: SecretKey = entry.getSecretKey();
-        val cipher: Cipher = Cipher.getInstance("RSA/ECB/OAEPWithSHA-256AndMGF1Padding")
+        val cipher: Cipher = Cipher.getInstance("RSA/ECB/OAEPwithSHA-256andMGF1Padding")
 
 //        val spec = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
 //            GCMParameterSpec(128, iv)
 //        } else {
 //            TODO("VERSION.SDK_INT < KITKAT")
 //        }
-
-        cipher.init(Cipher.DECRYPT_MODE, pk)
+        val sp = OAEPParameterSpec(
+            "SHA-256",
+            "MGF1",
+            MGF1ParameterSpec("SHA-1"),
+            PSource.PSpecified.DEFAULT
+        )
+        cipher.init(Cipher.DECRYPT_MODE, pk, sp)
 
         Log.d("tes 1", Base64.encodeToString(message, Base64.NO_WRAP))
 

@@ -97,6 +97,7 @@ class _MyAppState extends State<MyApp> {
                         message: plainTextController.text, tag: "Tag");
                     chiperByte = result.rawData;
                     // encrypted = result.rawData;
+                    print(base64Encode(chiperByte!));
                     encryptedTextController.text = chiperByte.toString();
                   },
                   child: const Text('Encrypt'),
