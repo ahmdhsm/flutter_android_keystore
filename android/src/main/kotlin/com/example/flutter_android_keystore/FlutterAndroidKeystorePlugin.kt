@@ -57,14 +57,14 @@ class FlutterAndroidKeystorePlugin: FlutterPlugin, MethodCallHandler, ActivityAw
 
     if (call.method == "generateKeyPair") {
       val tag: String? = call.argument("tag")
-      val encryption = ksCore.generateKeyPair("Tag1", false);
+      val encryption = ksCore.generateKeyPair(tag!!, false);
 
 //      result.success(encryption)
     } else if (call.method == "encrypt") {
       val message: String? = call.argument("message")
       val tag: String? = call.argument("tag")
 
-      val encryption = ksCore.encrypt(message!!, "Tag1", null);
+      val encryption = ksCore.encrypt(message!!, tag!!, null);
 
       result.success(encryption)
     } else if (call.method == "decrypt") {

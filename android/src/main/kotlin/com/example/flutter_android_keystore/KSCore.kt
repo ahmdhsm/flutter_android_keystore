@@ -6,6 +6,7 @@ import android.os.Build
 import android.security.keystore.KeyGenParameterSpec
 import android.security.keystore.KeyProperties
 import android.util.Base64
+import android.util.Log
 import java.security.KeyPair
 import java.security.KeyPairGenerator
 import java.security.KeyStore
@@ -55,7 +56,7 @@ class KSCore() : KSCoreAbstract() {
 
     override fun generateKeyPair(tag: String, biometric: Boolean): KeyPair? {
         val kpg: KeyPairGenerator = KeyPairGenerator.getInstance(
-            KeyProperties.KEY_ALGORITHM_EC,
+            KeyProperties.KEY_ALGORITHM_RSA,
             "AndroidKeyStore",
         )
         val spec: AlgorithmParameterSpec
@@ -65,14 +66,15 @@ class KSCore() : KSCoreAbstract() {
         val parameterSpec: KeyGenParameterSpec.Builder = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             KeyGenParameterSpec.Builder(
                 tag,
-                KeyProperties.PURPOSE_SIGN or KeyProperties.PURPOSE_VERIFY or KeyProperties.PURPOSE_ENCRYPT or KeyProperties.PURPOSE_VERIFY
+                KeyProperties.PURPOSE_SIGN or KeyProperties.PURPOSE_VERIFY or KeyProperties.PURPOSE_ENCRYPT or KeyProperties.PURPOSE_DECRYPT
             )
         } else {
             TODO("VERSION.SDK_INT < M")
         }
 
-        parameterSpec.setAlgorithmParameterSpec(ECGenParameterSpec("secp256r1"))
+//        parameterSpec.setAlgorithmParameterSpec(ECGenParameterSpec("secp256r1"))
         parameterSpec.setDigests(KeyProperties.DIGEST_SHA256, KeyProperties.DIGEST_SHA512)
+            parameterSpec.setEncryptionPaddings(KeyProperties.ENCRYPTION_PADDING_RSA_OAEP)
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P && context.packageManager.hasSystemFeature(PackageManager.FEATURE_STRONGBOX_KEYSTORE)) {
             parameterSpec.setIsStrongBoxBacked(true)
@@ -118,16 +120,17 @@ class KSCore() : KSCoreAbstract() {
 
 //        val cipher: Cipher = Cipher.getInstance("AES/GCM/NoPadding")
 
-        val cipher: Cipher = Cipher.getInstance("RSA/ECB/PKCS1Padding")
+        val cipher: Cipher = Cipher.getInstance("RSA/ECB/OAEPWithSHA-256AndMGF1Padding")
 
         cipher.init(Cipher.ENCRYPT_MODE, certificate.publicKey)
 
-        val iv = cipher.getIV()
-        val editor = context.getSharedPreferences("MyPrefs", Context.MODE_PRIVATE).edit()
-        val ivString = Base64.encodeToString(iv, Base64.NO_WRAP)
-        editor.putString(tag, ivString)
-        editor.commit()
+//        val iv = cipher.getIV()
+//        val editor = context.getSharedPreferences("MyPrefs", Context.MODE_PRIVATE).edit()
+//        val ivString = Base64.encodeToString(iv, Base64.NO_WRAP)
+//        editor.putString(tag, ivString)
+//        editor.commit()
 
+        Log.d("tes 2", Base64.encodeToString(cipher.doFinal(message?.toByteArray(Charsets.UTF_8)), Base64.NO_WRAP))
         return cipher.doFinal(message?.toByteArray(Charsets.UTF_8))
     }
 
@@ -136,25 +139,30 @@ class KSCore() : KSCoreAbstract() {
     }
 
     override fun decrypt(message: ByteArray, tag: String, password: String?): String? {
-        val preferences = context.getSharedPreferences("MyPrefs", Context.MODE_PRIVATE)
-        val base64Iv = preferences.getString(tag, "")
-        val iv = Base64.decode(base64Iv, Base64.NO_WRAP)
+//        val preferences = context.getSharedPreferences("MyPrefs", Context.MODE_PRIVATE)
+//        val base64Iv = preferences.getString(tag, "")
+//        val iv = Base64.decode(base64Iv, Base64.NO_WRAP)
 
         val ks: KeyStore = KeyStore.getInstance("AndroidKeyStore").apply {
             load(null)
         }
 
-        val entry: KeyStore.SecretKeyEntry = ks.getEntry(tag, null) as KeyStore.SecretKeyEntry
-        val sk: SecretKey = entry.getSecretKey();
-        val cipher: Cipher = Cipher.getInstance("AES/GCM/NoPadding")
+//        val certificate = ks.getCertificate(tag)
+        val pk = ks.getKey(tag, null)
 
-        val spec = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
-            GCMParameterSpec(128, iv)
-        } else {
-            TODO("VERSION.SDK_INT < KITKAT")
-        }
+//        val entry: KeyStore.SecretKeyEntry = ks.getEntry(tag, null) as KeyStore.SecretKeyEntry
+//        val sk: SecretKey = entry.getSecretKey();
+        val cipher: Cipher = Cipher.getInstance("RSA/ECB/OAEPWithSHA-256AndMGF1Padding")
 
-        cipher.init(Cipher.DECRYPT_MODE, sk, spec)
+//        val spec = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
+//            GCMParameterSpec(128, iv)
+//        } else {
+//            TODO("VERSION.SDK_INT < KITKAT")
+//        }
+
+        cipher.init(Cipher.DECRYPT_MODE, pk)
+
+        Log.d("tes 1", Base64.encodeToString(message, Base64.NO_WRAP))
 
         val decodedData = cipher.doFinal(message)
         return String(decodedData, Charsets.UTF_8)
