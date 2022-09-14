@@ -70,7 +70,7 @@ class KSCore() : KSCoreAbstract() {
             TODO("VERSION.SDK_INT < M")
         }
 
-//        parameterSpec.setAlgorithmParameterSpec(ECGenParameterSpec("secp256r1"))
+
         parameterSpec.setDigests(KeyProperties.DIGEST_SHA256, KeyProperties.DIGEST_SHA512)
             parameterSpec.setEncryptionPaddings(KeyProperties.ENCRYPTION_PADDING_RSA_OAEP)
                 parameterSpec.setSignaturePaddings(KeyProperties.SIGNATURE_PADDING_RSA_PSS)
@@ -92,7 +92,16 @@ class KSCore() : KSCoreAbstract() {
     }
 
     override fun removeKey(tag: String): Boolean {
-        TODO("Not yet implemented")
+        val ks: KeyStore = KeyStore.getInstance("AndroidKeyStore").apply {
+            load(null)
+        }
+
+        if (ks.containsAlias(tag)) {
+            ks.deleteEntry(tag)
+            return true
+        }
+
+        return false
     }
 
     override fun getSecKey(tag: String, password: String?): SecretKey {
@@ -100,7 +109,14 @@ class KSCore() : KSCoreAbstract() {
     }
 
     override fun isKeyCreated(tag: String, password: String?): Boolean? {
-        TODO("Not yet implemented")
+        val ks: KeyStore = KeyStore.getInstance("AndroidKeyStore").apply {
+            load(null)
+        }
+
+        if (ks.containsAlias(tag)) {
+            return true
+        }
+        return false
     }
 
     override fun getPublicKey(tag: String, password: String?): String? {
@@ -139,18 +155,10 @@ class KSCore() : KSCoreAbstract() {
             load(null)
         }
 
-//        val chars = arrayOf('A', 'B', 'C') as CharArray
         val pk = ks.getKey(tag, null)
 
-//        val entry: KeyStore.SecretKeyEntry = ks.getEntry(tag, null) as KeyStore.SecretKeyEntry
-//        val sk: SecretKey = entry.getSecretKey();
         val cipher: Cipher = Cipher.getInstance("RSA/ECB/OAEPwithSHA-256andMGF1Padding")
 
-//        val spec = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
-//            GCMParameterSpec(128, iv)
-//        } else {
-//            TODO("VERSION.SDK_INT < KITKAT")
-//        }
         val sp = OAEPParameterSpec(
             "SHA-256",
             "MGF1",
@@ -159,33 +167,11 @@ class KSCore() : KSCoreAbstract() {
         )
         cipher.init(Cipher.DECRYPT_MODE, pk, sp)
 
-        Log.d("tes 1", Base64.encodeToString(message, Base64.NO_WRAP))
-
         val decodedData = cipher.doFinal(message)
         return String(decodedData, Charsets.UTF_8)
     }
 
     override fun sign(tag: String, message: String, password: String?): String? {
-//        val kpg: KeyPairGenerator = KeyPairGenerator.getInstance(
-//            KeyProperties.KEY_ALGORITHM_EC,
-//            "AndroidKeyStore"
-//        )
-//        val parameterSpec: KeyGenParameterSpec = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-//            KeyGenParameterSpec.Builder(
-//                tag,
-//                KeyProperties.PURPOSE_SIGN or KeyProperties.PURPOSE_VERIFY
-//            ).run {
-//                setDigests(KeyProperties.DIGEST_SHA256, KeyProperties.DIGEST_SHA512)
-//                build()
-//            }
-//        } else {
-//            TODO("VERSION.SDK_INT < M")
-//        }
-//
-//        kpg.initialize(parameterSpec)
-//
-//        val kp = kpg.generateKeyPair()
-
         val ks: KeyStore = KeyStore.getInstance("AndroidKeyStore").apply {
             load(null)
         }
@@ -199,9 +185,6 @@ class KSCore() : KSCoreAbstract() {
             update(message.toByteArray())
             sign()
         }
-
-//        val signature = Signature.getInstance("SHA256withRSA/PSS")
-//        signature.initSign(ks.getKey(tag, null) as PrivateKey)
 
         return Base64.encodeToString(signature, Base64.NO_WRAP)
     }

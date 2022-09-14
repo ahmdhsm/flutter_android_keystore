@@ -9,6 +9,7 @@ import android.util.Base64
 import android.util.Log
 import androidx.annotation.NonNull
 import androidx.annotation.RequiresApi
+import androidx.biometric.BiometricPrompt
 
 import io.flutter.embedding.engine.plugins.FlutterPlugin
 import io.flutter.plugin.common.MethodCall
@@ -57,10 +58,14 @@ class FlutterAndroidKeystorePlugin: FlutterPlugin, MethodCallHandler, ActivityAw
 
     if (call.method == "generateKeyPair") {
       val tag: String? = call.argument("tag")
-      val encryption = ksCore.generateKeyPair(tag!!, false);
+      val encryption = ksCore.generateKeyPair(tag!!, true)
+
+      createPromptInfo()
 
 //      result.success(encryption)
     } else if (call.method == "encrypt") {
+
+
       val message: String? = call.argument("message")
       val tag: String? = call.argument("tag")
 
@@ -89,6 +94,18 @@ class FlutterAndroidKeystorePlugin: FlutterPlugin, MethodCallHandler, ActivityAw
       val decrypt = ksCore.verify(tag!!, plainText!!, signature!!, null);
 
       result.success(decrypt)
+    } else if (call.method == "isKeyCreated") {
+      val tag: String? = call.argument("tag")
+
+      val keyExist = ksCore.isKeyCreated(tag!!, null)
+
+      result.success(keyExist)
+    } else if (call.method == "removeKey") {
+      val tag: String? = call.argument("tag")
+
+      val keyExist = ksCore.removeKey(tag!!)
+
+      result.success(keyExist)
     } else {
       result.notImplemented()
     }
@@ -113,4 +130,18 @@ class FlutterAndroidKeystorePlugin: FlutterPlugin, MethodCallHandler, ActivityAw
   override fun onDetachedFromActivity() {
     TODO("Not yet implemented")
   }
+
+  private fun createPromptInfo(): BiometricPrompt.PromptInfo {
+    val promptBuilder = BiometricPrompt.PromptInfo.Builder()
+      .setTitle("Biometric")
+      .setSubtitle("Biometric")
+      .setDescription("Biometric")
+      .setConfirmationRequired(false)
+
+
+      promptBuilder.setDeviceCredentialAllowed(true)
+
+    return promptBuilder.build()
+  }
+
 }
