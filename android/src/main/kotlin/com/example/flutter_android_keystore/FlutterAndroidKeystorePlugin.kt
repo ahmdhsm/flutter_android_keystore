@@ -1,15 +1,20 @@
 package com.example.flutter_android_keystore
 
+import android.app.Activity
 import android.app.Application
+import android.app.KeyguardManager
 import android.content.Context
+
 import android.os.Build
 import android.security.keystore.KeyGenParameterSpec
 import android.security.keystore.KeyProperties
 import android.util.Base64
 import android.util.Log
+import android.widget.Toast
 import androidx.annotation.NonNull
-import androidx.annotation.RequiresApi
 import androidx.biometric.BiometricPrompt
+import androidx.core.content.ContextCompat
+import androidx.fragment.app.FragmentActivity
 
 import io.flutter.embedding.engine.plugins.FlutterPlugin
 import io.flutter.plugin.common.MethodCall
@@ -27,6 +32,7 @@ import javax.crypto.SecretKey
 import javax.crypto.spec.GCMParameterSpec
 import io.flutter.embedding.engine.plugins.activity.ActivityAware
 import io.flutter.embedding.engine.plugins.activity.ActivityPluginBinding
+import java.util.concurrent.Executor
 import kotlin.math.sign
 
 
@@ -44,32 +50,52 @@ class FlutterAndroidKeystorePlugin: FlutterPlugin, MethodCallHandler, ActivityAw
 
   lateinit var iv: ByteArray
 
+  private lateinit var executor: Executor
+  private lateinit var biometricPrompt: BiometricPrompt
+  private lateinit var promptInfo: BiometricPrompt.PromptInfo
+  private lateinit var fragment: Activity
+  private lateinit var keyguardManager: KeyguardManager
+
+
   override fun onAttachedToEngine(@NonNull flutterPluginBinding: FlutterPlugin.FlutterPluginBinding) {
     channel = MethodChannel(flutterPluginBinding.binaryMessenger, "flutter_android_keystore")
     channel.setMethodCallHandler(this)
     encryptionHelper.context = flutterPluginBinding.applicationContext
     context = flutterPluginBinding.applicationContext
     ksCore.context = context
+
+    executor = ContextCompat.getMainExecutor(context)
+
+    keyguardManager = context.getSystemService(Context.KEYGUARD_SERVICE) as KeyguardManager
+//    biometricPrompt = BiometricPrompt.PromptInfo.Builder
+
+
+
+    promptInfo = BiometricPrompt.PromptInfo.Builder()
+      .setTitle("Biometric login for my app")
+      .setSubtitle("Log in using your biometric credential")
+      .setNegativeButtonText("Use account password")
+      .build()
   }
 
-  @RequiresApi(Build.VERSION_CODES.M)
   override fun onMethodCall(@NonNull call: MethodCall, @NonNull result: Result) {
-//    var iv: ByteArray
-
     if (call.method == "generateKeyPair") {
       val tag: String? = call.argument("tag")
-      val encryption = ksCore.generateKeyPair(tag!!, true)
-
-      createPromptInfo()
+      val encryption = ksCore.generateKeyPair(tag!!, false)
 
 //      result.success(encryption)
     } else if (call.method == "encrypt") {
-
-
       val message: String? = call.argument("message")
       val tag: String? = call.argument("tag")
 
       val encryption = ksCore.encrypt(message!!, tag!!, null);
+
+      result.success(encryption)
+    } else if (call.method == "encryptWithPublicKey") {
+      val message: String? = call.argument("message")
+      val publicKey: String? = call.argument("publicKey")
+
+      val encryption = ksCore.encryptWithPublicKey(message!!, publicKey!!);
 
       result.success(encryption)
     } else if (call.method == "decrypt") {
@@ -122,7 +148,7 @@ class FlutterAndroidKeystorePlugin: FlutterPlugin, MethodCallHandler, ActivityAw
   }
 
   override fun onAttachedToActivity(binding: ActivityPluginBinding) {
-    TODO("Not yet implemented")
+    fragment = binding.activity
   }
 
   override fun onDetachedFromActivityForConfigChanges() {
@@ -136,18 +162,4 @@ class FlutterAndroidKeystorePlugin: FlutterPlugin, MethodCallHandler, ActivityAw
   override fun onDetachedFromActivity() {
     TODO("Not yet implemented")
   }
-
-  private fun createPromptInfo(): BiometricPrompt.PromptInfo {
-    val promptBuilder = BiometricPrompt.PromptInfo.Builder()
-      .setTitle("Biometric")
-      .setSubtitle("Biometric")
-      .setDescription("Biometric")
-      .setConfirmationRequired(false)
-
-
-      promptBuilder.setDeviceCredentialAllowed(true)
-
-    return promptBuilder.build()
-  }
-
 }

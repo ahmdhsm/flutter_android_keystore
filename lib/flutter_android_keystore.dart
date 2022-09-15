@@ -47,9 +47,11 @@ class FlutterAndroidKeystore implements AndroidKeystoreBase {
 
   @override
   Future<ResultModel<Uint8List?>> encryptWithPublicKey(
-      {required String message, required String publicKey}) {
-    // TODO: implement encryptWithPublicKey
-    throw UnimplementedError();
+      {required String message, required String publicKey}) async {
+    final Uint8List data = await _channel.invokeMethod(
+        'encryptWithPublicKey', {"message": message, "publicKey": publicKey});
+    final result = ResultModel(null, data, (dynamic) {});
+    return result;
   }
 
   @override

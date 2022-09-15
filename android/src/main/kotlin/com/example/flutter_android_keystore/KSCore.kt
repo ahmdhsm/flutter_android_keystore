@@ -7,10 +7,9 @@ import android.security.keystore.KeyGenParameterSpec
 import android.security.keystore.KeyProperties
 import android.util.Base64
 import android.util.Log
+import androidx.annotation.RequiresApi
 import java.security.*
-import java.security.spec.AlgorithmParameterSpec
-import java.security.spec.MGF1ParameterSpec
-import java.security.spec.RSAKeyGenParameterSpec
+import java.security.spec.*
 import javax.crypto.Cipher
 import javax.crypto.SecretKey
 import javax.crypto.spec.OAEPParameterSpec
@@ -71,7 +70,6 @@ class KSCore() : KSCoreAbstract() {
         }
 
 
-        parameterSpec.setDigests(KeyProperties.DIGEST_SHA256, KeyProperties.DIGEST_SHA512)
             parameterSpec.setEncryptionPaddings(KeyProperties.ENCRYPTION_PADDING_RSA_OAEP)
                 parameterSpec.setSignaturePaddings(KeyProperties.SIGNATURE_PADDING_RSA_PSS)
 
@@ -125,7 +123,7 @@ class KSCore() : KSCoreAbstract() {
         }
 
         val publicKey = ks.getCertificate(tag).publicKey
-        return  Base64.encodeToString(publicKey.encoded, Base64.NO_WRAP)
+        return Base64.encodeToString(publicKey.encoded, Base64.NO_WRAP)
     }
 
     override fun encrypt(message: String, tag: String, password: String?): ByteArray? {
@@ -147,12 +145,28 @@ class KSCore() : KSCoreAbstract() {
         cipher.init(Cipher.ENCRYPT_MODE, certificate.publicKey, sp)
 
         val chiper =  cipher.doFinal(message?.toByteArray(Charsets.UTF_8))
-        Log.d("tes 2", Base64.encodeToString(chiper, Base64.NO_WRAP))
         return chiper
     }
 
     override fun encryptWithPublicKey(message: String, publicKey: String): ByteArray? {
-        TODO("Not yet implemented")
+        val data: ByteArray = Base64.decode(publicKey, Base64.DEFAULT)
+        val spec = X509EncodedKeySpec(data)
+        val fact = KeyFactory.getInstance(KeyProperties.KEY_ALGORITHM_RSA)
+        val pk = fact.generatePublic(spec)
+
+        val cipher: Cipher = Cipher.getInstance("RSA/ECB/OAEPwithSHA-256andMGF1Padding")
+
+        val sp = OAEPParameterSpec(
+            "SHA-256",
+            "MGF1",
+            MGF1ParameterSpec("SHA-1"),
+            PSource.PSpecified.DEFAULT
+        )
+
+        cipher.init(Cipher.ENCRYPT_MODE, pk, sp)
+
+        val chiper =  cipher.doFinal(message?.toByteArray(Charsets.UTF_8))
+        return chiper
     }
 
     override fun decrypt(message: ByteArray, tag: String, password: String?): String? {
@@ -170,6 +184,7 @@ class KSCore() : KSCoreAbstract() {
             MGF1ParameterSpec("SHA-1"),
             PSource.PSpecified.DEFAULT
         )
+
         cipher.init(Cipher.DECRYPT_MODE, pk, sp)
 
         val decodedData = cipher.doFinal(message)
