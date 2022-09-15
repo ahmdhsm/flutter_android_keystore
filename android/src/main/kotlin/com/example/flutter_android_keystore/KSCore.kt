@@ -63,7 +63,7 @@ class KSCore() : KSCoreAbstract() {
         )
         val spec: AlgorithmParameterSpec
 
-        var specRSA = RSAKeyGenParameterSpec(1024, RSAKeyGenParameterSpec.F4)
+//        var specRSA = RSAKeyGenParameterSpec(1024, RSAKeyGenParameterSpec.F4)
 
         val parameterSpec: KeyGenParameterSpec.Builder = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             KeyGenParameterSpec.Builder(
@@ -75,8 +75,7 @@ class KSCore() : KSCoreAbstract() {
         }
 
 
-            parameterSpec.setEncryptionPaddings(KeyProperties.ENCRYPTION_PADDING_RSA_OAEP)
-                parameterSpec.setSignaturePaddings(KeyProperties.SIGNATURE_PADDING_RSA_PSS)
+
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P && context.packageManager.hasSystemFeature(PackageManager.FEATURE_STRONGBOX_KEYSTORE)) {
             parameterSpec.setIsStrongBoxBacked(true)
@@ -85,6 +84,8 @@ class KSCore() : KSCoreAbstract() {
         spec = parameterSpec.run {
             setDigests(KeyProperties.DIGEST_SHA256, KeyProperties.DIGEST_SHA512)
             setUserAuthenticationRequired(biometric)
+            setEncryptionPaddings(KeyProperties.ENCRYPTION_PADDING_RSA_OAEP)
+            setSignaturePaddings(KeyProperties.SIGNATURE_PADDING_RSA_PSS)
             build()
         }
 
