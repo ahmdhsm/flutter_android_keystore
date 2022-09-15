@@ -5,11 +5,9 @@
 
 import 'dart:async';
 import 'dart:convert';
-import 'dart:ffi';
 import 'dart:typed_data';
 
 import 'package:flutter/services.dart';
-import 'package:flutter_android_keystore/src/models/result_model.dart';
 import 'package:flutter_android_keystore/src/models/access_control_model.dart';
 
 import 'android_keystore_base.dart';

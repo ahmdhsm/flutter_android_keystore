@@ -82,16 +82,16 @@ class _MyAppState extends State<MyApp> {
                 ElevatedButton(
                   onPressed: () async {
                     ResultModel result = await androidKeystore.generateKeyPair(
-                      accessControl:
-                          AccessControlModel(options: [], tag: "Tag"),
+                      accessControl: AccessControlModel(
+                          options: [], tag: "Tag.AppBiometric"),
                     );
                   },
                   child: const Text('Generate Key Pair'),
                 ),
                 ElevatedButton(
                   onPressed: () async {
-                    ResultModel result =
-                        await androidKeystore.getPublicKey(tag: 'Tag');
+                    ResultModel result = await androidKeystore.getPublicKey(
+                        tag: 'Tag.AppBiometric');
                   },
                   child: const Text('Get Public Key'),
                 ),
@@ -105,7 +105,8 @@ class _MyAppState extends State<MyApp> {
                 ElevatedButton(
                   onPressed: () async {
                     ResultModel result = await androidKeystore.encrypt(
-                        message: plainTextController.text, tag: "Tag");
+                        message: plainTextController.text,
+                        tag: "Tag.AppBiometric");
                     chiperByte = result.rawData;
                     encryptedTextController.text = chiperByte.toString();
                   },
@@ -123,7 +124,7 @@ class _MyAppState extends State<MyApp> {
                   onPressed: () async {
                     ResultModel result = await androidKeystore.decrypt(
                       message: chiperByte!,
-                      tag: "Tag",
+                      tag: "Tag.AppBiometric",
                     );
                     decryptedTextController.text = result.rawData;
                   },
@@ -192,7 +193,7 @@ class _MyAppState extends State<MyApp> {
                     ResultModel result = await androidKeystore.sign(
                       message:
                           Uint8List.fromList(signTextController.text.codeUnits),
-                      tag: "Tag",
+                      tag: "Tag.AppBiometric",
                     );
                     signature = result.rawData;
                     signResultTextController.text = signature.toString();
@@ -217,7 +218,7 @@ class _MyAppState extends State<MyApp> {
                     ResultModel result = await androidKeystore.verify(
                       plainText: verifyTextController.text,
                       signature: signature!,
-                      tag: "Tag",
+                      tag: "Tag.AppBiometric",
                     );
                     verifyResultTextController.text = result.rawData.toString();
                   },

@@ -1,5 +1,6 @@
 package com.example.flutter_android_keystore
 
+import android.app.Activity
 import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Build
@@ -7,9 +8,13 @@ import android.security.keystore.KeyGenParameterSpec
 import android.security.keystore.KeyProperties
 import android.util.Base64
 import android.util.Log
+import android.widget.Toast
 import androidx.annotation.RequiresApi
+import androidx.biometric.BiometricPrompt
+import androidx.fragment.app.FragmentActivity
 import java.security.*
 import java.security.spec.*
+import java.util.concurrent.Executor
 import javax.crypto.Cipher
 import javax.crypto.SecretKey
 import javax.crypto.spec.OAEPParameterSpec
@@ -39,7 +44,7 @@ abstract class KSCoreAbstract {
     abstract fun encryptWithPublicKey(message: String, publicKey: String) : ByteArray?
 
     // decryption
-    abstract fun decrypt(message: ByteArray, tag: String, password: String?) : String?
+    abstract fun decrypt(message: ByteArray, tag: String, password: String?) : Cipher?
 
     // sign
     abstract fun sign(tag: String, message: String, password: String?) : String?
@@ -169,7 +174,7 @@ class KSCore() : KSCoreAbstract() {
         return chiper
     }
 
-    override fun decrypt(message: ByteArray, tag: String, password: String?): String? {
+    override fun decrypt(message: ByteArray, tag: String, password: String?): Cipher? {
         val ks: KeyStore = KeyStore.getInstance("AndroidKeyStore").apply {
             load(null)
         }
@@ -187,8 +192,17 @@ class KSCore() : KSCoreAbstract() {
 
         cipher.init(Cipher.DECRYPT_MODE, pk, sp)
 
-        val decodedData = cipher.doFinal(message)
-        return String(decodedData, Charsets.UTF_8)
+        return  cipher
+
+//        if (tag.contains("AppWithoutAuth")) {
+//            val decodedData = cipher.doFinal(message)
+//            return String(decodedData!!, Charsets.UTF_8)
+//        }
+//
+//        val promptInfo = generatePromptInfo()
+//        val biometricPrompt = generateBiometricPrompt(message)
+//        biometricPrompt.authenticate(promptInfo, BiometricPrompt.CryptoObject(cipher!!))
+//        return String(decodedData!!, Charsets.UTF_8)
     }
 
     override fun sign(tag: String, message: String, password: String?): String? {

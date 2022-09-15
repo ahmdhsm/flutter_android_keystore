@@ -1,39 +1,26 @@
 package com.example.flutter_android_keystore
 
 import android.app.Activity
-import android.app.Application
 import android.app.KeyguardManager
 import android.content.Context
-
-import android.os.Build
-import android.security.keystore.KeyGenParameterSpec
-import android.security.keystore.KeyProperties
-import android.util.Base64
 import android.util.Log
+import android.view.ViewGroup
+import android.widget.FrameLayout
 import android.widget.Toast
 import androidx.annotation.NonNull
 import androidx.biometric.BiometricPrompt
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.FragmentActivity
-
 import io.flutter.embedding.engine.plugins.FlutterPlugin
+import io.flutter.embedding.engine.plugins.activity.ActivityAware
+import io.flutter.embedding.engine.plugins.activity.ActivityPluginBinding
 import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
 import io.flutter.plugin.common.MethodChannel.MethodCallHandler
 import io.flutter.plugin.common.MethodChannel.Result
 import java.nio.charset.Charset
-import java.security.KeyPairGenerator
-import java.security.KeyStore
-import java.security.Signature
 import java.util.*
-import javax.crypto.Cipher
-import javax.crypto.KeyGenerator
-import javax.crypto.SecretKey
-import javax.crypto.spec.GCMParameterSpec
-import io.flutter.embedding.engine.plugins.activity.ActivityAware
-import io.flutter.embedding.engine.plugins.activity.ActivityPluginBinding
 import java.util.concurrent.Executor
-import kotlin.math.sign
 
 
 /** FlutterAndroidKeystorePlugin */
@@ -44,46 +31,34 @@ class FlutterAndroidKeystorePlugin: FlutterPlugin, MethodCallHandler, ActivityAw
   /// when the Flutter Engine is detached from the Activity
   private lateinit var channel : MethodChannel
   private lateinit var context: Context
+  private lateinit var plainText: ByteArray
 
-  val encryptionHelper: EncryptionHelper = EncryptionHelper()
+  private lateinit var activity: Activity
+  private lateinit var executor: Executor
+
   val ksCore = KSCore()
 
   lateinit var iv: ByteArray
-
-  private lateinit var executor: Executor
-  private lateinit var biometricPrompt: BiometricPrompt
-  private lateinit var promptInfo: BiometricPrompt.PromptInfo
-  private lateinit var fragment: Activity
-  private lateinit var keyguardManager: KeyguardManager
 
 
   override fun onAttachedToEngine(@NonNull flutterPluginBinding: FlutterPlugin.FlutterPluginBinding) {
     channel = MethodChannel(flutterPluginBinding.binaryMessenger, "flutter_android_keystore")
     channel.setMethodCallHandler(this)
-    encryptionHelper.context = flutterPluginBinding.applicationContext
-    context = flutterPluginBinding.applicationContext
-    ksCore.context = context
 
+    context = flutterPluginBinding.applicationContext
     executor = ContextCompat.getMainExecutor(context)
 
-    keyguardManager = context.getSystemService(Context.KEYGUARD_SERVICE) as KeyguardManager
-//    biometricPrompt = BiometricPrompt.PromptInfo.Builder
-
-
-
-    promptInfo = BiometricPrompt.PromptInfo.Builder()
-      .setTitle("Biometric login for my app")
-      .setSubtitle("Log in using your biometric credential")
-      .setNegativeButtonText("Use account password")
-      .build()
+    ksCore.context = context
   }
 
   override fun onMethodCall(@NonNull call: MethodCall, @NonNull result: Result) {
     if (call.method == "generateKeyPair") {
       val tag: String? = call.argument("tag")
-      val encryption = ksCore.generateKeyPair(tag!!, false)
-
-//      result.success(encryption)
+      if (tag!!.contains(".AppBiometric")) {
+        ksCore.generateKeyPair(tag!!, true)
+      } else {
+        ksCore.generateKeyPair(tag!!, false)
+      }
     } else if (call.method == "encrypt") {
       val message: String? = call.argument("message")
       val tag: String? = call.argument("tag")
@@ -99,12 +74,50 @@ class FlutterAndroidKeystorePlugin: FlutterPlugin, MethodCallHandler, ActivityAw
 
       result.success(encryption)
     } else if (call.method == "decrypt") {
+      val tes: MethodChannel.Result = result
       val message: ByteArray? = call.argument("message")
       val tag: String? = call.argument("tag")
 
-      val decrypt = ksCore.decrypt(message!!, tag!!, null);
+      val cipher = ksCore.decrypt(message!!, tag!!, null)
 
-      result.success(decrypt)
+      val promptInfo = BiometricPrompt.PromptInfo.Builder()
+        .setTitle("Biometric login for my app")
+        .setSubtitle("Log in using your biometric credential")
+        .setNegativeButtonText("Use account password")
+        .build()
+
+      val biometricPrompt = BiometricPrompt(activity as FragmentActivity, executor,
+        object : BiometricPrompt.AuthenticationCallback() {
+          override fun onAuthenticationError(errorCode: Int,
+                                             errString: CharSequence) {
+            super.onAuthenticationError(errorCode, errString)
+            Toast.makeText(context,
+              "Authentication error: $errString", Toast.LENGTH_SHORT)
+              .show()
+          }
+
+          override fun onAuthenticationSucceeded(
+            result: BiometricPrompt.AuthenticationResult) {
+            super.onAuthenticationSucceeded(result)
+            val decryptedData: ByteArray? = result.cryptoObject!!.cipher?.doFinal(
+              message
+            )
+            tes.success(String(decryptedData!!, Charsets.UTF_8))
+          }
+
+          override fun onAuthenticationFailed() {
+            super.onAuthenticationFailed()
+            Toast.makeText(context, "Authentication failed",
+              Toast.LENGTH_SHORT)
+              .show()
+          }
+        })
+
+      if (tag.contains("AppBiometric")) {
+        biometricPrompt.authenticate(promptInfo, BiometricPrompt.CryptoObject(cipher!!))
+      } else {
+        result.success(String(cipher!!.doFinal(message), Charsets.UTF_8))
+      }
     } else if (call.method == "sign") {
       val plainText: String? = call.argument("plaintext")
       val tag: String? = call.argument("tag")
@@ -148,7 +161,7 @@ class FlutterAndroidKeystorePlugin: FlutterPlugin, MethodCallHandler, ActivityAw
   }
 
   override fun onAttachedToActivity(binding: ActivityPluginBinding) {
-    fragment = binding.activity
+    activity = binding.activity
   }
 
   override fun onDetachedFromActivityForConfigChanges() {
