@@ -31,10 +31,16 @@ class _MyAppState extends State<MyApp> {
   var signResultTextController = TextEditingController();
   var verifyTextController = TextEditingController();
   var verifyResultTextController = TextEditingController();
+  var publicKeyTextController = TextEditingController();
+  var encryptedWithPublickKeyTextController = TextEditingController();
+  var decryptedFromPublicKeyTextEditingController = TextEditingController();
 
   Uint8List? chiperByte;
+  Uint8List? chiperFromPublicKey;
   String? signature;
   String encrypted = "";
+
+  final String globalTag = "Tag.AppBiometric";
 
   @override
   void initState() {
@@ -75,6 +81,22 @@ class _MyAppState extends State<MyApp> {
             padding: EdgeInsets.symmetric(horizontal: 10),
             child: Column(
               children: [
+                ElevatedButton(
+                  onPressed: () async {
+                    ResultModel result = await androidKeystore.generateKeyPair(
+                      accessControl:
+                          AccessControlModel(options: [], tag: globalTag),
+                    );
+                  },
+                  child: const Text('Generate Key Pair'),
+                ),
+                ElevatedButton(
+                  onPressed: () async {
+                    ResultModel result =
+                        await androidKeystore.getPublicKey(tag: globalTag);
+                  },
+                  child: const Text('Get Public Key'),
+                ),
                 TextFormField(
                   controller: plainTextController,
                   decoration: const InputDecoration(
@@ -85,9 +107,8 @@ class _MyAppState extends State<MyApp> {
                 ElevatedButton(
                   onPressed: () async {
                     ResultModel result = await androidKeystore.encrypt(
-                        message: plainTextController.text, tag: "Tag");
+                        message: plainTextController.text, tag: globalTag);
                     chiperByte = result.rawData;
-                    // encrypted = result.rawData;
                     encryptedTextController.text = chiperByte.toString();
                   },
                   child: const Text('Encrypt'),
@@ -104,7 +125,7 @@ class _MyAppState extends State<MyApp> {
                   onPressed: () async {
                     ResultModel result = await androidKeystore.decrypt(
                       message: chiperByte!,
-                      tag: "Tag",
+                      tag: globalTag,
                     );
                     decryptedTextController.text = result.rawData;
                   },
@@ -114,6 +135,50 @@ class _MyAppState extends State<MyApp> {
                   controller: decryptedTextController,
                   decoration: const InputDecoration(
                     label: Text('Decrypted'),
+                  ),
+                  enabled: false,
+                ),
+                TextFormField(
+                  controller: publicKeyTextController,
+                  decoration: const InputDecoration(
+                    label: Text('Public Key'),
+                  ),
+                ),
+                ElevatedButton(
+                  onPressed: () async {
+                    ResultModel result =
+                        await androidKeystore.encryptWithPublicKey(
+                      message: plainTextController.text,
+                      publicKey: publicKeyTextController.text,
+                    );
+                    chiperFromPublicKey = result.rawData;
+                    encryptedWithPublickKeyTextController.text =
+                        result.rawData.toString();
+                  },
+                  child: const Text('Encrypt With Public Key'),
+                ),
+                TextFormField(
+                  controller: encryptedWithPublickKeyTextController,
+                  decoration: const InputDecoration(
+                    label: Text('Encrypted With Public Key'),
+                  ),
+                  enabled: false,
+                ),
+                ElevatedButton(
+                  onPressed: () async {
+                    ResultModel result = await androidKeystore.decrypt(
+                      message: chiperByte!,
+                      tag: globalTag,
+                    );
+                    decryptedFromPublicKeyTextEditingController.text =
+                        result.rawData;
+                  },
+                  child: const Text('Decrypt From Public Key'),
+                ),
+                TextFormField(
+                  controller: decryptedFromPublicKeyTextEditingController,
+                  decoration: const InputDecoration(
+                    label: Text('Decrypted From Public Key'),
                   ),
                   enabled: false,
                 ),
@@ -129,7 +194,7 @@ class _MyAppState extends State<MyApp> {
                     ResultModel result = await androidKeystore.sign(
                       message:
                           Uint8List.fromList(signTextController.text.codeUnits),
-                      tag: "signature",
+                      tag: globalTag,
                     );
                     signature = result.rawData;
                     signResultTextController.text = signature.toString();
@@ -154,7 +219,7 @@ class _MyAppState extends State<MyApp> {
                     ResultModel result = await androidKeystore.verify(
                       plainText: verifyTextController.text,
                       signature: signature!,
-                      tag: "signature",
+                      tag: globalTag,
                     );
                     verifyResultTextController.text = result.rawData.toString();
                   },
