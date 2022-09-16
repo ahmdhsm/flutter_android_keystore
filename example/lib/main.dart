@@ -28,6 +28,7 @@ class _MyAppState extends State<MyApp> {
   var encryptedTextController = TextEditingController();
   var decryptedTextController = TextEditingController();
   var signTextController = TextEditingController();
+
   var signResultTextController = TextEditingController();
   var verifyTextController = TextEditingController();
   var verifyResultTextController = TextEditingController();
@@ -38,6 +39,7 @@ class _MyAppState extends State<MyApp> {
   Uint8List? chiperByte;
   Uint8List? chiperFromPublicKey;
   String? signature;
+
   String encrypted = "";
 
   final String globalTag = "Tag.AppBiometric";
