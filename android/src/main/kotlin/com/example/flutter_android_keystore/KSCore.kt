@@ -47,10 +47,10 @@ abstract class KSCoreAbstract {
     abstract fun decrypt(message: ByteArray, tag: String, password: String?) : Cipher?
 
     // sign
-    abstract fun sign(tag: String, message: String, password: String?) : String?
+    abstract fun sign(tag: String, message: String, password: String?) : Signature?
 
     // verify
-    abstract fun verify(tag: String, plainText: String, signature: String, password: String?) : Boolean
+    abstract fun verify(tag: String, plainText: String, signature: String, password: String?) : Signature?
 }
 
 class KSCore() : KSCoreAbstract() {
@@ -62,8 +62,6 @@ class KSCore() : KSCoreAbstract() {
             "AndroidKeyStore",
         )
         val spec: AlgorithmParameterSpec
-
-//        var specRSA = RSAKeyGenParameterSpec(1024, RSAKeyGenParameterSpec.F4)
 
         val parameterSpec: KeyGenParameterSpec.Builder = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             KeyGenParameterSpec.Builder(
@@ -206,7 +204,7 @@ class KSCore() : KSCoreAbstract() {
 //        return String(decodedData!!, Charsets.UTF_8)
     }
 
-    override fun sign(tag: String, message: String, password: String?): String? {
+    override fun sign(tag: String, message: String, password: String?): Signature? {
         val ks: KeyStore = KeyStore.getInstance("AndroidKeyStore").apply {
             load(null)
         }
@@ -215,13 +213,10 @@ class KSCore() : KSCoreAbstract() {
             return null
         }
 
-        val signature: ByteArray = Signature.getInstance("SHA256withRSA/PSS").run {
-            initSign(ks.getKey(tag, null) as PrivateKey)
-            update(message.toByteArray())
-            sign()
-        }
+        val signature: Signature = Signature.getInstance("SHA256withRSA/PSS")
+        signature.initSign(ks.getKey(tag, null) as PrivateKey)
 
-        return Base64.encodeToString(signature, Base64.NO_WRAP)
+        return signature
     }
 
     override fun verify(
@@ -229,22 +224,27 @@ class KSCore() : KSCoreAbstract() {
         plainText: String,
         signature: String,
         password: String?
-    ): Boolean {
+    ): Signature? {
         val ks: KeyStore = KeyStore.getInstance("AndroidKeyStore").apply {
             load(null)
         }
         val entry: KeyStore.Entry = ks.getEntry(tag, null)
         if (entry !is KeyStore.PrivateKeyEntry) {
-            return false
+            return null
         }
 
-        val valid: Boolean = Signature.getInstance("SHA256withRSA/PSS").run {
-            initVerify(entry.certificate)
-            update(plainText.toByteArray())
-            verify(Base64.decode(signature, Base64.NO_WRAP))
-        }
+//        val valid: Boolean = Signature.getInstance("SHA256withRSA/PSS").run {
+//            initVerify(entry.certificate)
+//            update(plainText.toByteArray())
+//            verify(Base64.decode(signature, Base64.NO_WRAP))
+//        }
 
-        return valid
+//        return valid
+
+        val verify = Signature.getInstance("SHA256withRSA/PSS")
+        verify.initVerify(entry.certificate)
+
+        return verify
     }
 
 }

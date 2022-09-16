@@ -42,7 +42,7 @@ class _MyAppState extends State<MyApp> {
 
   String encrypted = "";
 
-  final String globalTag = "Tag.AppBiometric";
+  final String globalTag = "Tag";
 
   @override
   void initState() {

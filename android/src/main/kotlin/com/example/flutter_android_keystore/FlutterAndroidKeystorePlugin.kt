@@ -3,6 +3,7 @@ package com.example.flutter_android_keystore
 import android.app.Activity
 import android.app.KeyguardManager
 import android.content.Context
+import android.util.Base64
 import android.util.Log
 import android.view.ViewGroup
 import android.widget.FrameLayout
@@ -37,9 +38,7 @@ class FlutterAndroidKeystorePlugin: FlutterPlugin, MethodCallHandler, ActivityAw
   private lateinit var executor: Executor
 
   val ksCore = KSCore()
-
-  lateinit var iv: ByteArray
-
+  val authPrompt = AuthPrompt()
 
   override fun onAttachedToEngine(@NonNull flutterPluginBinding: FlutterPlugin.FlutterPluginBinding) {
     channel = MethodChannel(flutterPluginBinding.binaryMessenger, "flutter_android_keystore")
@@ -49,9 +48,14 @@ class FlutterAndroidKeystorePlugin: FlutterPlugin, MethodCallHandler, ActivityAw
     executor = ContextCompat.getMainExecutor(context)
 
     ksCore.context = context
+
+    authPrompt.executor =  ContextCompat.getMainExecutor(context)
+    authPrompt.context = flutterPluginBinding.applicationContext
   }
 
   override fun onMethodCall(@NonNull call: MethodCall, @NonNull result: Result) {
+    authPrompt.methodChannelResult = result
+
     if (call.method == "generateKeyPair") {
       val tag: String? = call.argument("tag")
       if (tag!!.contains(".AppBiometric")) {
@@ -74,67 +78,44 @@ class FlutterAndroidKeystorePlugin: FlutterPlugin, MethodCallHandler, ActivityAw
 
       result.success(encryption)
     } else if (call.method == "decrypt") {
-      val tes: MethodChannel.Result = result
       val message: ByteArray? = call.argument("message")
       val tag: String? = call.argument("tag")
 
       val cipher = ksCore.decrypt(message!!, tag!!, null)
 
-      if (tag.contains("AppBiometric")) {
-        val promptInfo = BiometricPrompt.PromptInfo.Builder()
-          .setTitle("Biometric login for my app")
-          .setSubtitle("Log in using your biometric credential")
-          .setNegativeButtonText("Use account password")
-          .build()
-
-        val biometricPrompt = BiometricPrompt(activity as FragmentActivity, executor,
-          object : BiometricPrompt.AuthenticationCallback() {
-            override fun onAuthenticationError(errorCode: Int,
-                                               errString: CharSequence) {
-              super.onAuthenticationError(errorCode, errString)
-              Toast.makeText(context,
-                "Authentication error: $errString", Toast.LENGTH_SHORT)
-                .show()
-            }
-
-            override fun onAuthenticationSucceeded(
-              result: BiometricPrompt.AuthenticationResult) {
-              super.onAuthenticationSucceeded(result)
-              val decryptedData: ByteArray? = result.cryptoObject!!.cipher?.doFinal(
-                message
-              )
-              tes.success(String(decryptedData!!, Charsets.UTF_8))
-            }
-
-            override fun onAuthenticationFailed() {
-              super.onAuthenticationFailed()
-              Toast.makeText(context, "Authentication failed",
-                Toast.LENGTH_SHORT)
-                .show()
-            }
-          })
-
-        biometricPrompt.authenticate(promptInfo, BiometricPrompt.CryptoObject(cipher!!))
+      if (tag.contains(".AppBiometric")) {
+        authPrompt.decryptWithAuth(cipher!!, message)
       } else {
         val decodedData = cipher!!.doFinal(message)
-        String(decodedData!!, Charsets.UTF_8)
-        result.success("kkk")
+        result.success(String(decodedData!!, Charsets.UTF_8))
       }
     } else if (call.method == "sign") {
-      val plainText: String? = call.argument("plaintext")
+      val message: String? = call.argument("plaintext")
       val tag: String? = call.argument("tag")
 
-      val decrypt = ksCore.sign(tag!!, plainText!!, null)
+      val signature = ksCore.sign(tag!!, message!!, null)
 
-      result.success(decrypt)
+      if (tag.contains(".AppBiometric")) {
+        authPrompt.signWithAuth(signature!!, message!!)
+      } else {
+        signature!!.update(message.toByteArray())
+        val sign = signature!!.sign()
+        result.success(Base64.encodeToString(sign, Base64.NO_WRAP))
+      }
     } else if (call.method == "verify") {
       val plainText: String? = call.argument("plaintext")
       val tag: String? = call.argument("tag")
       val signature: String? = call.argument("signature")
 
-      val decrypt = ksCore.verify(tag!!, plainText!!, signature!!, null);
+      val verify = ksCore.verify(tag!!, plainText!!, signature!!, null);
 
-      result.success(decrypt)
+      if (tag.contains(".AppBiometric")) {
+        authPrompt.verifyWithAuth(verify!!, plainText!!, signature)
+      } else {
+        verify!!.update(plainText.toByteArray())
+        val isValid = verify!!.verify(Base64.decode(signature, Base64.NO_WRAP))
+        result.success(isValid)
+      }
     } else if (call.method == "isKeyCreated") {
       val tag: String? = call.argument("tag")
 
@@ -164,6 +145,7 @@ class FlutterAndroidKeystorePlugin: FlutterPlugin, MethodCallHandler, ActivityAw
 
   override fun onAttachedToActivity(binding: ActivityPluginBinding) {
     activity = binding.activity
+    authPrompt.activity = binding.activity
   }
 
   override fun onDetachedFromActivityForConfigChanges() {

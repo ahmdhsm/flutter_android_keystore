@@ -1,6 +1,6 @@
 name: flutter_android_keystore
-description: A new flutter plugin project.
-version: 0.0.1
+description: Flutter plugin to access android keystore
+version: 0.0.2
 homepage: https://github.com/ahmdhsm/flutter_android_keystore
 
 environment:
