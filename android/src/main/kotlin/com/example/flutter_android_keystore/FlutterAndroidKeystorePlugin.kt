@@ -80,43 +80,45 @@ class FlutterAndroidKeystorePlugin: FlutterPlugin, MethodCallHandler, ActivityAw
 
       val cipher = ksCore.decrypt(message!!, tag!!, null)
 
-      val promptInfo = BiometricPrompt.PromptInfo.Builder()
-        .setTitle("Biometric login for my app")
-        .setSubtitle("Log in using your biometric credential")
-        .setNegativeButtonText("Use account password")
-        .build()
-
-      val biometricPrompt = BiometricPrompt(activity as FragmentActivity, executor,
-        object : BiometricPrompt.AuthenticationCallback() {
-          override fun onAuthenticationError(errorCode: Int,
-                                             errString: CharSequence) {
-            super.onAuthenticationError(errorCode, errString)
-            Toast.makeText(context,
-              "Authentication error: $errString", Toast.LENGTH_SHORT)
-              .show()
-          }
-
-          override fun onAuthenticationSucceeded(
-            result: BiometricPrompt.AuthenticationResult) {
-            super.onAuthenticationSucceeded(result)
-            val decryptedData: ByteArray? = result.cryptoObject!!.cipher?.doFinal(
-              message
-            )
-            tes.success(String(decryptedData!!, Charsets.UTF_8))
-          }
-
-          override fun onAuthenticationFailed() {
-            super.onAuthenticationFailed()
-            Toast.makeText(context, "Authentication failed",
-              Toast.LENGTH_SHORT)
-              .show()
-          }
-        })
-
       if (tag.contains("AppBiometric")) {
+        val promptInfo = BiometricPrompt.PromptInfo.Builder()
+          .setTitle("Biometric login for my app")
+          .setSubtitle("Log in using your biometric credential")
+          .setNegativeButtonText("Use account password")
+          .build()
+
+        val biometricPrompt = BiometricPrompt(activity as FragmentActivity, executor,
+          object : BiometricPrompt.AuthenticationCallback() {
+            override fun onAuthenticationError(errorCode: Int,
+                                               errString: CharSequence) {
+              super.onAuthenticationError(errorCode, errString)
+              Toast.makeText(context,
+                "Authentication error: $errString", Toast.LENGTH_SHORT)
+                .show()
+            }
+
+            override fun onAuthenticationSucceeded(
+              result: BiometricPrompt.AuthenticationResult) {
+              super.onAuthenticationSucceeded(result)
+              val decryptedData: ByteArray? = result.cryptoObject!!.cipher?.doFinal(
+                message
+              )
+              tes.success(String(decryptedData!!, Charsets.UTF_8))
+            }
+
+            override fun onAuthenticationFailed() {
+              super.onAuthenticationFailed()
+              Toast.makeText(context, "Authentication failed",
+                Toast.LENGTH_SHORT)
+                .show()
+            }
+          })
+
         biometricPrompt.authenticate(promptInfo, BiometricPrompt.CryptoObject(cipher!!))
       } else {
-        result.success(String(cipher!!.doFinal(message), Charsets.UTF_8))
+        val decodedData = cipher!!.doFinal(message)
+        String(decodedData!!, Charsets.UTF_8)
+        result.success("kkk")
       }
     } else if (call.method == "sign") {
       val plainText: String? = call.argument("plaintext")
